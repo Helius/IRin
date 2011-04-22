@@ -24,7 +24,7 @@
     a { color: #0f2a66; }
     .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px;}
     .download { float: right; }
-    pre { background: #000; color: #fff; padding: 15px;}
+    pre { background: #000; color: #fff; padding: 5px;}
     hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
     .footer { text-align:center; padding-top:30px; font-style: italic; }
   </style>
@@ -50,13 +50,19 @@
     </div>
 <h2>Main goal</h2>
     <div class="goal">
-      I need manage my linux-based home media server with IR remote. I use lirc and COM-port with simple adapter, but it's not easy to configure and bind key, also COM-port is deprecated device. In addition i wonna to use USB module at Atmel ARM MC, and build very simple to use device with linux and over OS. I decide use virtual com port device (usb-cdc class), because it's simple read ASCII string (just call $cat /dev/ttyACM0 in linux) and no need driver. 
+			I wanna to build simple device, which receive IR remote signals and send it to OS. No special software, no deprecated com-port, no difficult configuring and bind remote key. I decide use USB communication device class (usb-cdc), because it no need special driver.  Just plug usb dongle and read VCP, in linux for example:
+			<pre>$ cat /dev/ttyACM0
+NEC 5916E
+NEC 6916E	</pre>
+This asci string is remote key-code (remote has NEC protocol). Just switch through key-codes and make what you need in simple bash script.
+If you open device in terminal like minicom, you give simple shell for configuring device
+<pre>$ minicom -D /dev/ttyACM0
+IRin&gt;</pre>
     </div>
 
-<h2>Main goal</h2>
-<!--#include file="maingoal.html"-->
 <h2>Schematic</h2>
-
+<a href="sch.png">View schematic.</a>
+Schemaitic is very simple, it contains AT91SAM7S64, crystal 18.342 MHz, 3.3V low drop line regulator, Atmel AT24 eeprom, 2color led for indication, TSSOP1736 IR receiver, few passive components.
 <h2>Board</h2>
 <img src="board_0.png" alt="begin">
 <img src="board_1.png" alt="eagle board">
