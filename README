@@ -1,8 +1,6 @@
 IRin - USB device, what recieve IR remote signals and send it via USB. 
 
-You no need more Lircd or other software. Just write simple script with `cat /dev/ttyACM0` and read line by line IR code from dongle.
-
-
+Just write simple script with `cat /dev/ttyACM0` and read line by line IR code from dongle.
 
 Device implements USB-CDC (communication device class) and no needs driver on Linux (Windows needs standart CDC driver, not included in all distrib)
 
