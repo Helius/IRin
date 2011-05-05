@@ -60,24 +60,33 @@ If you open device in terminal like minicom, you give simple shell for configuri
 IRin&gt;</pre>
     </div>
 
-<h2>Schematic</h2>
-<a href="sch.png">Schemaitic</a> is very simple, it contains AT91SAM7S64, 18.342 MHz crystal, 3.3V low drop line regulator, Atmel AT24 eeprom, 2color led for indication, TSSOP1736 IR receiver, few passive components.
 <h2>Board</h2>
 <img src="board_0.png" alt="begin">
-<img src="board_1.png" alt="eagle board">
 <img src="board_2.png" alt="black print board">
+<img src="board_1.png" alt="eagle board">
 <p>clickable<p>
 <a href="board_3.png"><img border="0" src="board_3_s.png" alt="step 1"></a>
 <a href="board_4.png"><img border="0" src="board_4_s.png" alt="step 2"></a>
 <a href="board_5.png"><img border="0" src="board_5_s.png" alt="step 3"></a>
 
+<h2>Schematic</h2>
+<a href="sch.png">Schemaitic</a> is very simple, it contains AT91SAM7S64, 18.342 MHz crystal, 3.3V low drop line regulator, Atmel AT24 eeprom, 2color led for indication, TSSOP1736 IR receiver, few passive components.
+
 <h2>Firmware</h2>
-You can <a href=https://github.com/Helius/IRin/blob/master/src/usb-device-cdc-serial-project/bin/cdc-flash.hex>download</a> intell hex file.
+You can <a href=https://github.com/Helius/IRin/blob/master/src/usb-device-cdc-serial-project/bin/cdc-flash.hex>download</a> intell hex file and flash it to chip.
+
 <h2>How to flash chip</h2>
 I use <a href=http://claymore.engineer.gvsu.edu/~steriana/Software/Sam_I_Am/index.html>sam_i_am</a>, thanks to <a href=http://claymore.engineer.gvsu.edu/~steriana/about.html>Andrew Sterian</a> for cool utility.
 
+<h2>Build</h2>
+You need crosscompiler for build project, i use <a href=https://github.com/esden/summon-arm-toolchain>summon-arm-toolchain</a> scripts for build gcc-arm toolchain.
+Now you can tune project via Makefile and build it
+<pre>$cd src/usb-device-cdc-serial-project/
+$make</pre>
+
 <h2>License</h2>
 <p>GPL</p>
+
 <h2>Authors</h2>
 <p>Helius (ghelius@gmail.com)<br/><br/>      </p>
 
