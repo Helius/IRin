@@ -27,7 +27,17 @@
     pre { background: #000; color: #fff; padding: 5px;}
     hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
     .footer { text-align:center; padding-top:30px; font-style: italic; }
+		
+		.lnr { color: #808080; }
+		.PreProc { color: #88ff88; }
+		.Conditional { color: #cccc33; }
+		.String { color: #c080c0; }
+		.Statement { color: #ffaa77; }
+		.Identifier { color: #aaaadd; font-weight: bold; }
+		.Comment { color: #808080; }
   </style>
+
+
 </head>
 
 <body>
@@ -50,21 +60,55 @@
     </div>
 <h2>Main goal</h2>
     <div class="goal">
-			I wanna to build simple device, which receive IR remote signals and send it to OS. No special software, no deprecated com-port, no difficult configuring and bind remote key. I decide use USB communication device class (usb-cdc), because it no need special driver.  Just plug usb dongle and read VCP, in linux for example:
+			I wanna to build simple device, which receive IR remote signals and send it to OS. No special software, no deprecated com-port, no difficult configuring and bind remote key. I decide to use USB communication device class (usb-cdc), because it no need special driver.  Just plug usb dongle, read VCP, now press some key on IR, in linux for example:
 			<pre>$ cat /dev/ttyACM0
 NEC 5916E
 NEC 6916E	</pre>
-This asci string is remote key-code (remote has NEC protocol). Just switch through key-codes and make what you need in simple bash script.
+This asci string is remote key-code (remote has NEC protocol).
+    </div>
+<br>Simple bash script example. At line 6 we read string (key code) from /dev/ttyACM0 - our device, at line 7 switching through defined keys and do action. 
+<pre>
+<span class="lnr"> 1 </span><span class="Comment">#!/bin/bash</span>
+<span class="lnr"> 2 </span>
+<span class="lnr"> 3 </span><span class="Identifier">KEY_VOL_UP</span>=<span class="Statement">&quot;</span><span class="String">NEC 00000</span><span class="Statement">&quot;</span>
+<span class="lnr"> 4 </span><span class="Identifier">KEY_VOL_DOWN</span>=<span class="Statement">&quot;</span><span class="String">NEC 11111</span><span class="Statement">&quot;</span>
+<span class="lnr"> 5 </span>
+<span class="lnr"> 6 </span>cat /dev/ttyACM0 | <span class="Statement">while </span><span class="Statement">read</span><span class="Statement"> line</span><span class="Statement">;</span><span class="Statement"> </span><span class="Conditional">do</span>
+<span class="lnr"> 7 </span>  <span class="Conditional">case</span> <span class="Statement">&quot;</span><span class="PreProc">$line</span><span class="Statement">&quot;</span> <span class="Conditional">in</span>
+<span class="lnr"> 8 </span>
+<span class="lnr"> 9 </span><span class="Comment">#--- volume up action ----</span>
+<span class="lnr">10 </span>    <span class="Conditional">(</span><span class="PreProc">$KEY_VOL_UP</span><span class="Statement">)</span>
+<span class="lnr">11 </span>      <span class="Statement">echo</span><span class="String"> </span><span class="Statement">&quot;</span><span class="String">--volume up--</span><span class="Statement">&quot;</span>
+<span class="lnr">12 </span>      amixer <span class="Statement">set</span><span class="Identifier"> Master 2+ </span><span class="Statement">&gt;</span><span class="Identifier"> /dev/null</span>
+<span class="lnr">13 </span>    <span class="Statement">;;</span>
+<span class="lnr">14 </span>
+<span class="lnr">15 </span><span class="Comment">#--- volume down action ---</span>
+<span class="lnr">16 </span>    <span class="Conditional">(</span><span class="PreProc">$KEY_VOL_DOWN</span><span class="Statement">)</span>
+<span class="lnr">17 </span>      <span class="Statement">echo</span><span class="String"> </span><span class="Statement">&quot;</span><span class="String">--volume down--</span><span class="Statement">&quot;</span>
+<span class="lnr">18 </span>      amixer <span class="Statement">set</span><span class="Identifier"> Master 2+ </span><span class="Statement">&gt;</span><span class="Identifier"> /dev/null</span>
+<span class="lnr">19 </span>    <span class="Statement">;;</span>
+<span class="lnr">20 </span>
+<span class="lnr">21 </span><span class="Comment">#--- template to you action ---</span>
+<span class="lnr">22 </span>  <span class="Comment"># (YOUR KEY)</span>
+<span class="lnr">23 </span>  <span class="Comment">#   echo &quot;--you action--&quot;</span>
+<span class="lnr">24 </span>  <span class="Comment"># ;;</span>
+<span class="lnr">25 </span>
+<span class="lnr">26 </span><span class="Comment">#--- default action, if key not matched ---</span>
+<span class="lnr">27 </span>    <span class="Conditional">(</span>*<span class="Statement">)</span>
+<span class="lnr">28 </span>      <span class="Statement">echo</span><span class="String"> </span><span class="Statement">&quot;</span><span class="String">--unknown key </span><span class="PreProc">$line</span><span class="Statement">&quot;</span>
+<span class="lnr">29 </span>    <span class="Statement">;;</span>
+<span class="lnr">30 </span>  <span class="Conditional">esac</span>
+<span class="lnr">31 </span><span class="Conditional">done</span>
+</pre>
 If you open device in terminal like minicom, you give simple shell for configuring device
 <pre>$ minicom -D /dev/ttyACM0
 IRin&gt;</pre>
-    </div>
 
 <h2>Board</h2>
 <img src="board_0.png" alt="begin">
 <img src="board_2.png" alt="black print board">
 <img src="board_1.png" alt="eagle board">
-<p>clickable<p>
+<br>clickable<br>
 <a href="board_3.png"><img border="0" src="board_3_s.png" alt="step 1"></a>
 <a href="board_4.png"><img border="0" src="board_4_s.png" alt="step 2"></a>
 <a href="board_5.png"><img border="0" src="board_5_s.png" alt="step 3"></a>
@@ -80,15 +124,13 @@ I use <a href=http://claymore.engineer.gvsu.edu/~steriana/Software/Sam_I_Am/inde
 
 <h2>Build</h2>
 You need crosscompiler for build project, i use <a href=https://github.com/esden/summon-arm-toolchain>summon-arm-toolchain</a> scripts for build gcc-arm toolchain.
-Now you can tune project via Makefile and build it
+<br>Now you can tune project via Makefile and build it:
 <pre>$cd src/usb-device-cdc-serial-project/
 $make</pre>
 
 <h2>License</h2>
 <p>GPL</p>
 
-<h2>Authors</h2>
-<p>Helius (ghelius@gmail.com)<br/><br/>      </p>
 
     <h2>Download</h2>
     <p>
