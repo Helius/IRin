@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset='utf-8'>
+<script src="jquery-1.4.4.min.js" type="text/javascript"></script>
 
   <title>Helius/IRin @ GitHub</title>
 
@@ -21,7 +22,7 @@
     h1 a { text-decoration: none }
     h2 { font-size: 1.5em; color: #0f2a66; }
     h3 { text-align: center; color: #0f2a66; }
-    a { color: #0f2a66; }
+    a { border:0;text-decoration:none; color: #0f2a66; }
     .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px;}
     .download { float: right; }
     pre { background: #000; color: #fff; padding: 5px; font-size: 1.1em}
@@ -35,23 +36,56 @@
 		.Statement { color: #ffaa77; }
 		.Identifier { color: #aaaadd; font-weight: bold; }
 		.Comment { color: #808080; }
+		div.switcher{
+				position:absolute;
+				margin-top:0px;
+				margin-left:155px;
+				background:#f0d599;
+				border:1px solid #ecd8b0;
+				-moz-border-radius:3px;
+				-webkit-border-radius:3px;
+				border-radius:3px;
+				vertical-align: top;
+		}
+		div.switcher a{
+			display:block;
+			padding:2px 5px;
+			border:1px solid #ecd8b0;
+			-moz-border-radius:3px;
+			-webkit-border-radius:3px;
+			border-radius:3px;
+			line-height:16px;
+		}
+		div.switcher a:hover{
+			background:#f9e8c6;
+			border:1px solid #f9e8c6;
+			-moz-border-radius:3px;
+			-webkit-border-radius:3px;
+			border-radius:3px;
+		}
+		div.switcher img{
+			vertical-align:middle;
+		}
   </style>
-
-
 </head>
 
 <body>
+
 <img src="ir.png" alt="receiver" style="left: 0; top: 0; border 0;">
-<img src="rc.png" alt="remoute" style="position: absolute; right: 0; border: 0;">
+<img src="rc.png" alt="remote" style="position: absolute; right: 0; border: 0;">
   <a href="http://github.com/Helius/IRin"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
 
-  <div id="container">
+	<div class="switcher" onmouseover="javascript:$('#rus').show();" onmouseout="javascript:$('#rus').hide();">
+			<a href="http://helius.github.com/IRin"><img src="flag_eng.gif"> English</a>
+			<a style="display:none" show="0" id="rus" href="http://github.com/Helius/IRin/index_ru.hrml"><img src="flag_rus.gif"> Русский</a>
+	</div>
 
+  <div id="container">
     <div class="download">
       <a href="http://github.com/Helius/IRin/zipball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
+        <img border="0" width="90" src="https://github.com/images/modules/download/zip.png"></a>
       <a href="http://github.com/Helius/IRin/tarball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
+        <img border="0" width="90" src="https://github.com/images/modules/download/tar.png"></a>
     </div>
 
     <h1><a href="http://github.com/Helius/IRin">IRin</a>
@@ -62,11 +96,11 @@
     </div>
 <h2>Main goal</h2>
     <div class="goal">
-			I wanna to build simple device, which receive IR remote signals and send it to OS. No special software, no deprecated com-port, no difficult configuring and bind remote key. I decide to use USB communication device class (usb-cdc), because it no need special driver.  Just plug usb dongle, read VCP, now press some key on IR, in linux for example:
+			I wanna to build simple device, which receive IR remote signals and send it to OS. No special software, no obsolete com-port, no difficult configuring and bind remote key. I decide to use USB communication device class (usb-cdc), because it no needs special driver.  Just plug usb dongle, read VCP, now press some key on IR, in linux for example:
 			<pre>$ cat /dev/ttyACM0
 NEC 5916E
 NEC 6916E	</pre>
-This asci string is remote key-code (remote has NEC protocol).
+This asci string is remote key-code (this remote has NEC protocol).
     </div>
 <br>Simple bash script example. At line 6 we read string (key code) from /dev/ttyACM0 - our device, at line 7 switching through defined keys and do action. 
 <pre>
@@ -107,6 +141,7 @@ If you open device in terminal like minicom, you give simple shell for configuri
 IRin&gt;</pre>
 
 <h2>Board</h2>
+Board produced in Eagle for home made laser-printer technology.<br>
 <img src="board_0.png" alt="begin">
 <img src="board_2.png" alt="black print board">
 <img src="board_1.png" alt="eagle board">
@@ -114,9 +149,20 @@ IRin&gt;</pre>
 <a href="board_3.png"><img border="0" src="board_3_s.png" alt="step 1"></a>
 <a href="board_4.png"><img border="0" src="board_4_s.png" alt="step 2"></a>
 <a href="board_5.png"><img border="0" src="board_5_s.png" alt="step 3"></a>
+<br>Board source file was lost :D try to restore it later.
 
 <h2>Schematic</h2>
-<a href="sch.png">Schemaitic</a> is very simple, it contains AT91SAM7S64, 18.342 MHz crystal, 3.3V low drop line regulator, Atmel AT24 eeprom, 2color led for indication, TSSOP1736 IR receiver, few passive components.
+<a href="sch.png">Schemaitic</a> is very simple, it contains 
+<ul>
+<li>AT91SAM7S64, 
+<li>18.342 MHz crystal, 
+<li>3.3V low drop line regulator, 
+<li>Atmel AT24 eeprom, 
+<li>2color led for indication, 
+<li>TSSOP1736 IR receiver, 
+<li>few passive components.
+</ul>
+
 
 <h2>Firmware</h2>
 You can <a href=https://github.com/Helius/IRin/blob/master/src/usb-device-cdc-serial-project/bin/cdc-flash.hex>download</a> intell hex file and flash it to chip.
@@ -129,6 +175,12 @@ You need crosscompiler for build project, i use <a href=https://github.com/esden
 <br>Now you can tune project via Makefile and build it:
 <pre>$cd src/usb-device-cdc-serial-project/
 $make</pre>
+
+<h2>TODO</h2>
+<ul>
+<li>Make command line shell.
+<li>Supporting RC5 and other remote protocols.
+</ul> 
 
 <h2>License</h2>
 <p>GPL</p>
