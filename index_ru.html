@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+<script src="jquery-1.4.4.min.js" type="text/javascript"></script>
+
+  <title>Helius/IRin @ GitHub</title>
+
+  <style type="text/css">
+    body {
+      margin-top: 1.0em;
+      background-color: #f0d599;
+      font-family: Helvetica, Arial, FreeSans, san-serif;
+      color: #000000;
+    }
+    #container {
+      margin: 0 auto;
+      width: 900px;
+    }
+    h1 { font-size: 3.8em; color: #0f2a66; margin-bottom: 3px; }
+    h1 .small { font-size: 0.4em; }
+    h1 a { text-decoration: none }
+    h2 { font-size: 1.5em; color: #0f2a66; }
+    h3 { text-align: center; color: #0f2a66; }
+    a { border:0;text-decoration:none; color: #0f2a66; }
+    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px;}
+    .download { float: right; }
+    pre { background: #000; color: #fff; padding: 5px; font-size: 1.1em}
+    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
+    .footer { text-align:center; padding-top:30px; font-style: italic; }
+		
+		.lnr { color: #808080; }
+		.PreProc { color: #88ff88; }
+		.Conditional { color: #cccc33; }
+		.String { color: #c080c0; }
+		.Statement { color: #ffaa77; }
+		.Identifier { color: #aaaadd; font-weight: bold; }
+		.Comment { color: #808080; }
+		div.switcher{
+				position:absolute;
+				margin-top:0px;
+				margin-left:155px;
+				background:#f0d599;
+				border:1px solid #ecd8b0;
+				-moz-border-radius:3px;
+				-webkit-border-radius:3px;
+				border-radius:3px;
+				vertical-align: top;
+		}
+		div.switcher a{
+			display:block;
+			padding:2px 5px;
+			border:1px solid #ecd8b0;
+			-moz-border-radius:3px;
+			-webkit-border-radius:3px;
+			border-radius:3px;
+			line-height:16px;
+		}
+		div.switcher a:hover{
+			background:#f9e8c6;
+			border:1px solid #f9e8c6;
+			-moz-border-radius:3px;
+			-webkit-border-radius:3px;
+			border-radius:3px;
+		}
+		div.switcher img{
+			vertical-align:middle;
+		}
+  </style>
+</head>
+
+<body>
+
+<img src="ir.png" alt="receiver" style="left: 0; top: 0; border 0;">
+<img src="rc.png" alt="remote" style="position: absolute; right: 0; border: 0;">
+  <a href="http://github.com/Helius/IRin"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+
+	<div class="switcher" onmouseover="javascript:$('#rus').show();" onmouseout="javascript:$('#rus').hide();">
+			<a href="http://helius.github.com/IRin"><img src="flag_eng.gif"> English</a>
+			<a style="display:none" show="0" id="rus" href="http://github.com/Helius/IRin/index_ru.hrml"><img src="flag_rus.gif"> Русский</a>
+	</div>
+
+  <div id="container">
+    <div class="download">
+      <a href="http://github.com/Helius/IRin/zipball/master">
+        <img border="0" width="90" src="https://github.com/images/modules/download/zip.png"></a>
+      <a href="http://github.com/Helius/IRin/tarball/master">
+        <img border="0" width="90" src="https://github.com/images/modules/download/tar.png"></a>
+    </div>
+
+    <h1><a href="http://github.com/Helius/IRin">IRin</a>
+      <span class="small">by <a href="http://github.com/Helius">Helius</a></span></h1>
+
+    <div class="description">
+      IRin - "IR input". Устройство (usb dongle) what receive signal from IR remote and send it to virtual com-port via USB (cdc-class). Build on Atmel ARM7 AT91SAM7S64 microcontroller. Use Atmel usb framework.
+    </div>
+<h2>Main goal</h2>
+    <div class="goal">
+			I wanna to build simple device, which receive IR remote signals and send it to OS. No special software, no obsolete com-port, no difficult configuring and bind remote key. I decide to use USB communication device class (usb-cdc), because it no needs special driver.  Just plug usb dongle, read VCP, now press some key on IR, in linux for example:
+			<pre>$ cat /dev/ttyACM0
+NEC 5916E
+NEC 6916E	</pre>
+This asci string is remote key-code (this remote has NEC protocol).
+    </div>
+<br>Simple bash script example. At line 6 we read string (key code) from /dev/ttyACM0 - our device, at line 7 switching through defined keys and do action. 
+<pre>
+<span class="lnr"> 1 </span><span class="Comment">#!/bin/bash</span>
+<span class="lnr"> 2 </span>
+<span class="lnr"> 3 </span><span class="Identifier">KEY_VOL_UP</span>=<span class="Statement">&quot;</span><span class="String">NEC 00000</span><span class="Statement">&quot;</span>
+<span class="lnr"> 4 </span><span class="Identifier">KEY_VOL_DOWN</span>=<span class="Statement">&quot;</span><span class="String">NEC 11111</span><span class="Statement">&quot;</span>
+<span class="lnr"> 5 </span>
+<span class="lnr"> 6 </span>cat /dev/ttyACM0 | <span class="Statement">while </span><span class="Statement">read</span><span class="Statement"> line</span><span class="Statement">;</span><span class="Statement"> </span><span class="Conditional">do</span>
+<span class="lnr"> 7 </span>  <span class="Conditional">case</span> <span class="Statement">&quot;</span><span class="PreProc">$line</span><span class="Statement">&quot;</span> <span class="Conditional">in</span>
+<span class="lnr"> 8 </span>
+<span class="lnr"> 9 </span><span class="Comment">#--- volume up action ----</span>
+<span class="lnr">10 </span>    <span class="Conditional">(</span><span class="PreProc">$KEY_VOL_UP</span><span class="Statement">)</span>
+<span class="lnr">11 </span>      <span class="Statement">echo</span><span class="String"> </span><span class="Statement">&quot;</span><span class="String">--volume up--</span><span class="Statement">&quot;</span>
+<span class="lnr">12 </span>      amixer <span class="Statement">set</span><span class="Identifier"> Master 2+ </span><span class="Statement">&gt;</span><span class="Identifier"> /dev/null</span>
+<span class="lnr">13 </span>    <span class="Statement">;;</span>
+<span class="lnr">14 </span>
+<span class="lnr">15 </span><span class="Comment">#--- volume down action ---</span>
+<span class="lnr">16 </span>    <span class="Conditional">(</span><span class="PreProc">$KEY_VOL_DOWN</span><span class="Statement">)</span>
+<span class="lnr">17 </span>      <span class="Statement">echo</span><span class="String"> </span><span class="Statement">&quot;</span><span class="String">--volume down--</span><span class="Statement">&quot;</span>
+<span class="lnr">18 </span>      amixer <span class="Statement">set</span><span class="Identifier"> Master 2+ </span><span class="Statement">&gt;</span><span class="Identifier"> /dev/null</span>
+<span class="lnr">19 </span>    <span class="Statement">;;</span>
+<span class="lnr">20 </span>
+<span class="lnr">21 </span><span class="Comment">#--- template to you action ---</span>
+<span class="lnr">22 </span>  <span class="Comment"># (YOUR KEY)</span>
+<span class="lnr">23 </span>  <span class="Comment">#   echo &quot;--you action--&quot;</span>
+<span class="lnr">24 </span>  <span class="Comment"># ;;</span>
+<span class="lnr">25 </span>
+<span class="lnr">26 </span><span class="Comment">#--- default action, if key not matched ---</span>
+<span class="lnr">27 </span>    <span class="Conditional">(</span>*<span class="Statement">)</span>
+<span class="lnr">28 </span>      <span class="Statement">echo</span><span class="String"> </span><span class="Statement">&quot;</span><span class="String">--unknown key </span><span class="PreProc">$line</span><span class="Statement">&quot;</span>
+<span class="lnr">29 </span>    <span class="Statement">;;</span>
+<span class="lnr">30 </span>  <span class="Conditional">esac</span>
+<span class="lnr">31 </span><span class="Conditional">done</span>
+</pre>
+If you open device in terminal like minicom, you give simple shell for configuring device
+<pre>$ minicom -D /dev/ttyACM0
+IRin&gt;</pre>
+
+<h2>Board</h2>
+Board produced in Eagle for home made laser-printer technology.<br>
+<img src="board_0.png" alt="begin">
+<img src="board_2.png" alt="black print board">
+<img src="board_1.png" alt="eagle board">
+<br>clickable<br>
+<a href="board_3.png"><img border="0" src="board_3_s.png" alt="step 1"></a>
+<a href="board_4.png"><img border="0" src="board_4_s.png" alt="step 2"></a>
+<a href="board_5.png"><img border="0" src="board_5_s.png" alt="step 3"></a>
+<br>Board source file was lost :D try to restore it later.
+
+<h2>Schematic</h2>
+<a href="sch.png">Schemaitic</a> is very simple, it contains 
+<ul>
+<li>AT91SAM7S64, 
+<li>18.342 MHz crystal, 
+<li>3.3V low drop line regulator, 
+<li>Atmel AT24 eeprom, 
+<li>2color led for indication, 
+<li>TSSOP1736 IR receiver, 
+<li>few passive components.
+</ul>
+
+
+<h2>Firmware</h2>
+You can <a href=https://github.com/Helius/IRin/blob/master/src/usb-device-cdc-serial-project/bin/cdc-flash.hex>download</a> intell hex file and flash it to chip.
+
+<h2>How to flash chip</h2>
+I use <a href=http://claymore.engineer.gvsu.edu/~steriana/Software/Sam_I_Am/index.html>sam_i_am</a>, thanks to <a href=http://claymore.engineer.gvsu.edu/~steriana/about.html>Andrew Sterian</a> for cool utility.
+
+<h2>Build</h2>
+You need crosscompiler for build project, i use <a href=https://github.com/esden/summon-arm-toolchain>summon-arm-toolchain</a> scripts for build gcc-arm toolchain.
+<br>Now you can tune project via Makefile and build it:
+<pre>$cd src/usb-device-cdc-serial-project/
+$make</pre>
+
+<h2>TODO</h2>
+<ul>
+<li>Make command line shell.
+<li>Supporting RC5 and other remote protocols.
+</ul> 
+
+<h2>License</h2>
+<p>GPL</p>
+
+
+    <h2>Download</h2>
+    <p>
+      You can download this project in either
+      <a href="http://github.com/Helius/IRin/zipball/master">zip</a> or
+      <a href="http://github.com/Helius/IRin/tarball/master">tar</a> formats.
+    </p>
+    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
+      by running:
+      <pre>$ git clone git://github.com/Helius/IRin</pre>
+    </p>
+
+    <div class="footer">
+      get the source code on GitHub : <a href="http://github.com/Helius/IRin">Helius/IRin</a>
+    </div>
+
+  </div>
+
+  
+</body>
+</html>
