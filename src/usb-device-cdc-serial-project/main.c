@@ -205,7 +205,7 @@ static int usb_recieve;
 //static unsigned char usartCurrentBuffer = 0;
 
 /// Buffer for storing incoming USB data.
-//static unsigned char usbBuffer[DATABUFFERSIZE];
+static unsigned char usbBuffer[DATABUFFERSIZE];
 
 
 /// Pin definititon
@@ -226,6 +226,7 @@ void cdc_write (char * data)
 // ir signal line change interrupt
 static void ISR_IR(const Pin *pPin)
 {
+	
   // call ir handler and pass level on IR pin (inverse, because IR reciever invert pulse)
 	ir_line_handler(pir, !PIO_Get(&pinIR));
 }
@@ -236,7 +237,7 @@ static void ISR_IR(const Pin *pPin)
 //------------------------------------------------------------------------------
 static void IR_Configure( void )
 {
-    TRACE_DEBUG("");
+    TRACE_DEBUG(" ");
 
     // Configure PIO
     PIO_Configure(&pinIR, 1);
@@ -385,7 +386,7 @@ static void UsbDataReceived(unsigned int unused,
         // Send data through USART
 //        while (!USART_WriteBuffer(AT91C_BASE_US0, usbBuffer, received));
 //        AT91C_BASE_US0->US_IER = AT91C_US_TXBUFE;
-			usb_recive = received;
+			usb_recieve = received;
 
         // Check if bytes have been discarded
         if ((received == DATABUFFERSIZE) && (remaining > 0)) {
@@ -410,119 +411,117 @@ static void UsbDataReceived(unsigned int unused,
 //------------------------------------------------------------------------------
 int main()
 {
-		// Enable User Reset and set its minimal assertion to 960 us
-		//		while(!(AT91C_BASE_RSTC->RSTC_RSR & AT91C_RSTC_NRSTL)) {}; // this is no need
-		AT91C_BASE_RSTC->RSTC_RMR = AT91C_RSTC_URSTEN | (0x4<<8) | (unsigned int)(0xA5 << 24);
+	// Enable User Reset and set its minimal assertion to 960 us
+	//		while(!(AT91C_BASE_RSTC->RSTC_RSR & AT91C_RSTC_NRSTL)) {}; // this is no need
+	AT91C_BASE_RSTC->RSTC_RMR = AT91C_RSTC_URSTEN | (0x4<<8) | (unsigned int)(0xA5 << 24);
 
-    TRACE_CONFIGURE(DBGU_STANDARD, 115200, BOARD_MCK);
-    printf ("\n\r---------------------------------------\n\r");
-		printf ("-- USB Device CDC Serial Project %s --\n\r", SOFTPACK_VERSION);
-    printf ("-- %s\n\r", BOARD_NAME);
-    printf ("-- Compiled: %s %s --\n\r\n\r", __DATE__, __TIME__);
+	TRACE_CONFIGURE(DBGU_STANDARD, 115200, BOARD_MCK);
+	printf ("\n\r---------------------------------------\n\r");
+	printf ("-- USB Device CDC Serial Project %s --\n\r", SOFTPACK_VERSION);
+	printf ("-- %s\n\r", BOARD_NAME);
+	printf ("-- Compiled: %s %s --\n\r\n\r", __DATE__, __TIME__);
 
-		// init of ir
-		ir_init (pir);
-		microrl_init (prl, cdc_write);
+	// init of ir
+	ir_init (pir);
+	microrl_init (prl, cdc_write);
 
-    // If they are present, configure IR & Wake-up pins
-    PIO_InitializeInterrupts(0);
-		IR_Configure ();
+	// If they are present, configure IR & Wake-up pins
+	PIO_InitializeInterrupts(0);
+	IR_Configure ();
 
-    LED_Configure(USBD_LEDUSB);
-    LED_Set(USBD_LEDUSB);
+	LED_Configure(USBD_LEDUSB);
+	LED_Set(USBD_LEDUSB);
 
-		//helius: set pull up manually
-		TRACE_DEBUG ("Disconnect from USB");
-		static const Pin pinPullUp = PIN_USB_PULLUP;
-		PIO_Configure(&pinPullUp, 1); 
-    PIO_Clear (&pinPullUp);
-		for (int i = 0; i < 500; i++)
-			printf ("   ");
-    PIO_Set (&pinPullUp);
+	//helius: set pull up manually
+	TRACE_DEBUG ("Disconnect from USB");
+	static const Pin pinPullUp = PIN_USB_PULLUP;
+	PIO_Configure(&pinPullUp, 1); 
+	PIO_Clear (&pinPullUp);
+	for (int i = 0; i < 500; i++)
+		printf ("   ");
+	PIO_Set (&pinPullUp);
 
-		//helius: configere single pin
-		PIO_Configure(&pinToggle, 1); 
-		PIO_Configure(&ledRed, 1); 
-		PIO_Configure(&ledGrn, 1); 
+	//helius: configere single pin
+	PIO_Configure(&pinToggle, 1); 
+	PIO_Configure(&ledRed, 1); 
+	PIO_Configure(&ledGrn, 1); 
 
-		//red on
-		PIO_Set (&ledRed);
-		PIO_Clear (&ledGrn);
+	//red on
+	PIO_Set (&ledRed);
+	PIO_Clear (&ledGrn);
 
 
-    // Configure timer 1 for IR module (100us interrupt)
-    AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_TC1);
-    AT91C_BASE_TC1->TC_CCR = AT91C_TC_CLKDIS;
-    AT91C_BASE_TC1->TC_IDR = 0xFFFFFFFF;
-    AT91C_BASE_TC1->TC_CMR = AT91C_TC_CLKS_TIMER_DIV3_CLOCK
-                             | AT91C_TC_CPCSTOP
-                             | AT91C_TC_CPCDIS
-                             | AT91C_TC_WAVESEL_UP_AUTO
-                             | AT91C_TC_WAVE;
-    AT91C_BASE_TC1->TC_RC = 145; // 100us
-    AT91C_BASE_TC1->TC_IER = AT91C_TC_CPCS;
-    AIC_ConfigureIT(AT91C_ID_TC1, 0, ISR_Timer1);
-    AIC_EnableIT(AT91C_ID_TC1);
-    AT91C_BASE_TC1->TC_CCR = AT91C_TC_CLKEN | AT91C_TC_SWTRG;
+	// Configure timer 1 for IR module (100us interrupt)
+	AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_TC1);
+	AT91C_BASE_TC1->TC_CCR = AT91C_TC_CLKDIS;
+	AT91C_BASE_TC1->TC_IDR = 0xFFFFFFFF;
+	AT91C_BASE_TC1->TC_CMR = AT91C_TC_CLKS_TIMER_DIV3_CLOCK
+													 | AT91C_TC_CPCSTOP
+													 | AT91C_TC_CPCDIS
+													 | AT91C_TC_WAVESEL_UP_AUTO
+													 | AT91C_TC_WAVE;
+	AT91C_BASE_TC1->TC_RC = 145; // 100us
+	AT91C_BASE_TC1->TC_IER = AT91C_TC_CPCS;
+	AIC_ConfigureIT(AT91C_ID_TC1, 0, ISR_Timer1);
+	AIC_EnableIT(AT91C_ID_TC1);
+	AT91C_BASE_TC1->TC_CCR = AT91C_TC_CLKEN | AT91C_TC_SWTRG;
 
-    // BOT driver initialization
-    CDCDSerialDriver_Initialize();
+	// BOT driver initialization
+	CDCDSerialDriver_Initialize();
 
-    // connect if needed
-    VBUS_CONFIGURE();
-		usb_recieve = 0;
+	// connect if needed
+	VBUS_CONFIGURE();
+	usb_recieve = 0;
 
-    // Driver loop
-    while (1) {
-			int key_code;
+	// Driver loop
+	while (1) {
+		int key_code;
 
-        // Device is not configured
-        if (USBD_GetState() < USBD_STATE_CONFIGURED) {
+		// Device is not configured
+		if (USBD_GetState() < USBD_STATE_CONFIGURED) {
 
-            // Connect pull-up, wait for configuration
-            USBD_Connect();
-            while (USBD_GetState() < USBD_STATE_CONFIGURED);
+				// Connect pull-up, wait for configuration
+				USBD_Connect();
+				while (USBD_GetState() < USBD_STATE_CONFIGURED);
 
-            // Start receiving data on the USB
-            CDCDSerialDriver_Read(usbBuffer,
-                                  DATABUFFERSIZE,
-                                  (TransferCallback) UsbDataReceived,
-                                  0);
-        } else {
-					PIO_Clear (&ledRed);					
-				}
+				// Start receiving data on the USB
+				CDCDSerialDriver_Read(usbBuffer,
+															DATABUFFERSIZE,
+															(TransferCallback) UsbDataReceived,
+															0);
+		} else {
+			PIO_Clear (&ledRed);					
+		}
 
-        if( USBState == STATE_SUSPEND ) {
-            TRACE_DEBUG("suspend  !\n\r");
-            USBState = STATE_IDLE;
-        }
-        if( USBState == STATE_RESUME ) {
-            // Return in normal MODE
-            TRACE_DEBUG("resume !\n\r");
-            USBState = STATE_IDLE;
-        }
-				// check new IR code
-				if ((key_code = ir_code (pir))) {
-//					TRACE_DEBUG ("IR Reciev %x", key_code);
-					char key_str [16] = {0};
-					sprintf (key_str, "NEC %X\n\r", key_code);
-					cdc_write (key_str);
-				}
+		if( USBState == STATE_SUSPEND ) {
+				TRACE_DEBUG("suspend  !\n\r");
+				USBState = STATE_IDLE;
+		}
+		if( USBState == STATE_RESUME ) {
+				// Return in normal MODE
+				TRACE_DEBUG("resume !\n\r");
+				USBState = STATE_IDLE;
+		}
+		// check new IR code
+		if ((key_code = ir_code (pir))) {
+			char key_str [16] = {0};
+			sprintf (key_str, "NEC %X\n\r", key_code);
+			cdc_write (key_str);
+		}
 
-        if (USBD_GetState() == USBD_STATE_CONFIGURED) {
-					if (usb_recieve) {
-						TRACE_DEBUG ("USB Reciev %d", usb_recieve);
-						for (int i = 0; i < usb_recieve; i++)
-							microrl_insert_char (prl, usbBuffer[i]);
-//						TRACE_DEBUG ("");
-						usb_recieve = 0;
-						CDCDSerialDriver_Read(usbBuffer,
-																	DATABUFFERSIZE,
-																	(TransferCallback) UsbDataReceived,
-																	0);
-					}
-				}
-
-    }
+		if (USBD_GetState() == USBD_STATE_CONFIGURED) {
+			if (usb_recieve) {
+				TRACE_DEBUG ("USB Reciev %d", usb_recieve);
+				for (int i = 0; i < usb_recieve; i++)
+					microrl_insert_char (prl, usbBuffer[i]);
+				
+				usb_recieve = 0;
+				CDCDSerialDriver_Read(usbBuffer,
+															DATABUFFERSIZE,
+															(TransferCallback) UsbDataReceived,
+															0);
+			}
+		}
+	}
 }
 

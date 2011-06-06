@@ -55,6 +55,7 @@ static const Pin pinToggle = PIN_LED_DS4;
 // handler is called on each toggle ir data line level
 void ir_line_handler (ir_t * this, int level)
 {
+		PIO_Set (&pinToggle);
 	if ((this->state == _IR_IDLE) && (level)) { // synchro first front
 		PIO_Set (&pinToggle);
 		this->state = _IR_SYNCHRO_UP;

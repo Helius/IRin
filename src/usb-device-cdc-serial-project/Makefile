@@ -167,3 +167,6 @@ $(foreach MEMORY, $(MEMORIES), $(eval $(call RULES,$(MEMORY))))
 clean:
 	-rm -f $(OBJ)/*.o $(BIN)/*.bin $(BIN)/*.elf
 
+load:
+	sam_i_am -x flash_script
+

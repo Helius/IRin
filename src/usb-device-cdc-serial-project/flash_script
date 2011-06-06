@@ -1,0 +1,7 @@
+open /dev/ttyACM0 
+writew FFFFFF64 5A000004
+shell sleep 1
+writew FFFFFF64 5A002004
+flash bin/cdc-flash.hex
+go 0
+quit
