@@ -1122,7 +1122,7 @@ void USBD_SetConfiguration(unsigned char cfgnum)
 //------------------------------------------------------------------------------
 void USBD_Connect(void)
 {
-    TRACE_DEBUG("");
+    TRACE_DEBUG(" ");
 
 #if defined(BOARD_USB_PULLUP_EXTERNAL)
     const Pin pinPullUp = PIN_USB_PULLUP;
@@ -1146,7 +1146,7 @@ void USBD_Connect(void)
 //------------------------------------------------------------------------------
 void USBD_Disconnect(void)
 {
-    TRACE_DEBUG("");
+    TRACE_DEBUG(" ");
 
 #if defined(BOARD_USB_PULLUP_EXTERNAL)
     const Pin pinPullUp = PIN_USB_PULLUP;
