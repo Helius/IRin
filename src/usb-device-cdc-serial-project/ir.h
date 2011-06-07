@@ -10,6 +10,7 @@
 #define _IR_SYNCHRO_UP		1
 #define _IR_SYNCHRO_DOWN	2
 #define _IR_RX_DATA				3
+#define _IR_REPEAT				4
 
 #define _UNDEF_PR					0
 #define _NEC_PR						1

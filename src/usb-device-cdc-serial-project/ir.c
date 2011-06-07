@@ -7,6 +7,8 @@ module for hadling ir signal and recognise it
 #include "ir.h"
 
 static const Pin ledGrn = PIN_LED_GRN;
+//static const Pin dbg_pin   = PIN_DBG;
+
 //*****************************************************************************
 // calls once at startup, setup internal data
 void ir_init (ir_t * this)
@@ -15,6 +17,7 @@ void ir_init (ir_t * this)
 	this->protocol = _UNDEF_PR;
 	this->code = 0;
 	this->ready_flag = false;
+	this->led_cnt = 0;
 }
 
 //*****************************************************************************
@@ -23,15 +26,27 @@ void ir_time_handler (ir_t * this)
 {
 	if (this->state != _IR_IDLE)
 		this->timer++;
-	if (this->timer > 200) 
+
+	if (this->state == _IR_REPEAT) {
+		this->ready_flag = true;
+		this->led_cnt = 100;
+		PIO_Set (&ledGrn);
 		this->state = _IR_IDLE;
-	if (this->led_cnt > 0) {
-		this->led_cnt--;
-	} else {
-		PIO_Clear (&ledGrn);
+		this->timer = 0;
 	}
+
+	if (this->timer > 150) {
+		this->state = _IR_IDLE;
+		this->timer = 0;
+	}
+
+	if (this->led_cnt > 0)
+		this->led_cnt--;
+	else
+		PIO_Clear (&ledGrn);
 }
 
+//*****************************************************************************
 static int accept_code (ir_t * this)
 {
 	unsigned char cmd[2];
@@ -50,39 +65,42 @@ static int accept_code (ir_t * this)
 	return false;
 }
 
-static const Pin pinToggle = PIN_LED_DS4;
 //*****************************************************************************
 // handler is called on each toggle ir data line level
 void ir_line_handler (ir_t * this, int level)
 {
-		PIO_Set (&pinToggle);
-	if ((this->state == _IR_IDLE) && (level)) { // synchro first front
-		PIO_Set (&pinToggle);
-		this->state = _IR_SYNCHRO_UP;
+	if ((this->state == _IR_IDLE) && (level == 1)) { // synchro first front
+		this->timer=0;
 		this->raw = 0;
 		this->count = 0;
-		this->timer = 0;
-	}	else if ((this->state == _IR_SYNCHRO_UP) && (!level) && 
+		this->state = _IR_SYNCHRO_UP;
+//		PIO_Set (&dbg_pin);
+	}	else if ((this->state == _IR_SYNCHRO_UP) && (!level) &&
 						(this->timer < _TIME_SYNCH_HI_PULSE + 10) && 
 						(this->timer > _TIME_SYNCH_HI_PULSE - 10)) {
-		this->state = _IR_SYNCHRO_DOWN;
+//		PIO_Clear (&dbg_pin);
 		this->timer = 0;
+		this->state = _IR_SYNCHRO_DOWN;
 	}	else if ((this->state == _IR_SYNCHRO_DOWN) && (level) &&
 						(this->timer < _TIME_SYNCH_LO_PULSE + 10) && 
 						(this->timer > _TIME_SYNCH_LO_PULSE - 10)) {
-		this->state = _IR_RX_DATA;
 		this->timer = 0;
-	}	else if ((this->state == _IR_RX_DATA)) {
-
+		this->state = _IR_RX_DATA;
+//		PIO_Set (&dbg_pin);
+	}	else if ((this->state == _IR_SYNCHRO_DOWN) && (level) &&
+						(this->timer < _TIME_DATA_1_PULSE + 5) && 
+						(this->timer > _TIME_DATA_1_PULSE - 5)) {
+		this->state = _IR_REPEAT;
+	}	else if (this->state == _IR_RX_DATA) {
 		if (level) {
-		this->raw >>= 1;
-			if ((this->timer < _TIME_DATA_1_PULSE + 4) &&
-					(this->timer > _TIME_DATA_1_PULSE - 4)) {
-//				PIO_Set (&pinToggle);
+			this->raw >>= 1;
+			if ((this->timer < _TIME_DATA_1_PULSE + 5) &&
+					(this->timer > _TIME_DATA_1_PULSE - 5)) {
 				this->raw	|= 0x80000000;
-			} else if ((this->timer < _TIME_DATA_0_PULSE + 4) &&
-								(this->timer > _TIME_DATA_0_PULSE - 4)) {
-//				PIO_Clear (&pinToggle);
+//				PIO_Set (&dbg_pin);
+			} else if ((this->timer < _TIME_DATA_0_PULSE + 5) &&
+								(this->timer > _TIME_DATA_0_PULSE - 5)) {
+//				PIO_Clear (&dbg_pin);
 			}
 			this->count++;
 			if (this->count > 31) {
@@ -90,10 +108,10 @@ void ir_line_handler (ir_t * this, int level)
 					TRACE_DEBUG ("IR Reciev ERROR %x", this->raw);
 				}
 				this->state = _IR_IDLE;
+//				PIO_Clear (&dbg_pin);
 			}
 			this->timer = 0;
 		}
-	} else {
 	}
 }
 
@@ -102,7 +120,6 @@ int ir_code (ir_t * this)
 {
 	if (this->ready_flag) {
 		this->ready_flag = false;
-		PIO_Set (&pinToggle);
 		return this->code;
 	}
 	return 0;
