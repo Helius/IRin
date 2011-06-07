@@ -7,7 +7,7 @@ module for hadling ir signal and recognise it
 #include "ir.h"
 
 static const Pin ledGrn = PIN_LED_GRN;
-//static const Pin dbg_pin   = PIN_DBG;
+//static const Pin dbg_pin   = PIN_BTN;
 
 //*****************************************************************************
 // calls once at startup, setup internal data
