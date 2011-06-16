@@ -175,6 +175,8 @@
 
 /// IR reciever pin
 #define PIN_IR_REC					{1 << 26, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_INPUT, PIO_DEGLITCH | PIO_PULLUP}
+/// debug pin
+#define PIN_DBG							{1 << 25, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT}
 /// Push button #0 definition (PA19).
 #define PIN_PUSHBUTTON_1    {1 << 19, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_INPUT, PIO_DEGLITCH | PIO_PULLUP}
 /// Push button #1 definition (PA20).
