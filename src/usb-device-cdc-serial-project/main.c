@@ -213,6 +213,7 @@ static const Pin pinIR     = PIN_IR_REC;
 static const Pin pinToggle = PIN_LED_DS4;
 static const Pin ledRed    = PIN_LED_RED;
 static const Pin ledGrn    = PIN_LED_GRN;
+static const Pin dbg_pin   = PIN_DBG;
 
 //*****************************************************************************
 // send string to host
@@ -240,9 +241,9 @@ static void IR_Configure( void )
     TRACE_DEBUG(" ");
 
     // Configure PIO
-    PIO_Configure(&pinIR, 1);
-    PIO_ConfigureIt(&pinIR, ISR_IR);
-    PIO_EnableIt(&pinIR);
+    PIO_Configure (&pinIR, 1);
+    PIO_ConfigureIt (&pinIR, ISR_IR);
+    PIO_EnableIt (&pinIR);
 }
 
 #define VBUS_CONFIGURE()    USBD_Connect()
@@ -445,6 +446,7 @@ int main()
 	PIO_Configure(&pinToggle, 1); 
 	PIO_Configure(&ledRed, 1); 
 	PIO_Configure(&ledGrn, 1); 
+	PIO_Configure(&dbg_pin, 1); 
 
 	//red on
 	PIO_Set (&ledRed);
@@ -475,7 +477,6 @@ int main()
 
 	// Driver loop
 	while (1) {
-		int key_code;
 
 		// Device is not configured
 		if (USBD_GetState() < USBD_STATE_CONFIGURED) {
@@ -503,8 +504,9 @@ int main()
 				USBState = STATE_IDLE;
 		}
 		// check new IR code
-		if ((key_code = ir_code (pir))) {
-			char key_str [16] = {0};
+		int key_code = ir_code (pir);
+		if (key_code) {
+			char key_str [32] = {0};
 			sprintf (key_str, "NEC %X\n\r", key_code);
 			cdc_write (key_str);
 		}
