@@ -1,6 +1,9 @@
 #ifndef _MICRORL_H_
 #define _MICRORL_H_
 
+#define true  1
+#define false 0
+
  /* define the Key codes */
 #define KEY_NUL 0 /**< ^@ Null character */
 #define KEY_SOH 1 /**< ^A Start of heading, = console interrupt */
@@ -40,12 +43,14 @@
 
 #define _HISTORY_LEVELS		10
 #define _COMMAND_LINE_LEN 128
+#define _COMMAND_TOKEN_NMB 8
 #define _PROMPT_DEFAUTL "IRin > "
 
 typedef struct {
 	char * prompt_str;
 	char cmdline [_COMMAND_LINE_LEN];
-	int cmdpos; // last position in command line
+	int cmdpos;                           // last position in command line
+	char const * tkn_arr [_COMMAND_TOKEN_NMB];
 	int (*execute) (int argc, const char * const * argv );
 	char * (*get_complition) (int argc, const char * const * argv );	
 	void (*print) (char *);
