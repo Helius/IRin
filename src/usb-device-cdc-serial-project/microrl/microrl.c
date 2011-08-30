@@ -122,6 +122,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 		}
 	} else {
 		switch (ch) {
+			//-----------------------------------------------------
 			case KEY_CR:
 			case KEY_LF:
 				terminal_newline (this);
@@ -139,6 +140,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 				memset(this->cmdline, 0, _COMMAND_LINE_LEN);
 			
 				break;
+			//-----------------------------------------------------
 			case KEY_HT:
 	//			char ** compl_token; 
 	//			//TODO: call callback, if not NULL
@@ -146,22 +148,41 @@ void microrl_insert_char (microrl_t * this, int ch)
 	//				compl_token = get_complition ();
 	//			}
 				break;
+			//-----------------------------------------------------
 			case KEY_ESC:
 				escape = 1;
 				break;
-			case KEY_NAK:
-				printf ("<<<");
+			//-----------------------------------------------------
+			case KEY_NAK: // Ctrl+U
+				while (this->cursor-- > 0) {
+					terminal_backspace (this);
+				}
+				memset(this->cmdline, 0, _COMMAND_LINE_LEN);
+				this->cmdpos = 0;
 				break;
-			case KEY_DEL:
+			//-----------------------------------------------------
+			case KEY_DEL://TODO: rewrite it!
 				if (this->cursor > 0) {
 					terminal_backspace (this);
 					this->print ("\033[K");
+
+					memcpy (this->cmdline + this->cursor-1, this->cmdline + this->cursor, this->cmdpos - this->cursor+1);
+					this->cmdline [this->cmdpos] ='\0';
 					this->cursor--;
-					for (int i = 0; i < this->cmdpos - this->cursor; i++) {
-						this->cmdline [i + this->cursor] = this->cmdline [i + 1 + this->cursor]; 
+					this->cmdpos--;
+					for (int i = this->cursor; i < this->cmdpos; i++) {
+						char chn [2] = {0,0};
+						chn [0] = this->cmdline [i];
+						if (chn[0] == '\0') {
+							chn[0] = ' ';
+						}
+						this->print (chn);
 					}
+					for (int i = this->cursor; i < this->cmdpos; i++) 
+						this->print ("\033[D");
 				}
 				break;
+			//-----------------------------------------------------
 			default:
 				if (this->cmdpos < _COMMAND_LINE_LEN - 1) {
 
