@@ -71,7 +71,9 @@ void microrl_set_execute_callback (microrl_t * this, int (*execute)(int, const c
 	this->execute = execute;
 }
 
-#define _CURSOR_MOVE 1
+#define _ESC_BRACKET  1
+#define _ESC_HOME     2
+#define _ESC_END      3
 
 //*****************************************************************************
 int escape_process (microrl_t * this, char ch)
@@ -79,8 +81,8 @@ int escape_process (microrl_t * this, char ch)
 	static int seq = 0;
 
 	if (ch == '[') {
-		seq = _CURSOR_MOVE;	
-	} else if (seq == _CURSOR_MOVE) {
+		seq = _ESC_BRACKET;	
+	} else if (seq == _ESC_BRACKET) {
 		if (ch == 'A') {
 //			printf ("Up");
 			return 1;
@@ -99,9 +101,28 @@ int escape_process (microrl_t * this, char ch)
 				this->print ("\033[D");
 			}
 			return 1;
-		} else {
-			return 1;
-		}
+		} else if (ch == '7') {
+			seq = _ESC_HOME;
+			return 0;
+		} else if (ch == '8') {
+			seq = _ESC_END;
+			return 0;
+		} 
+	} else if (ch == '~') {
+			if (seq == _ESC_HOME) {
+				while (this->cursor>0) {
+					this->print ("\033[D");
+					this->cursor--;
+				}
+				return 1;
+			} else if (seq == _ESC_END) {
+					while (this->cursor < this->cmdpos) {
+						this->print ("\033[C");
+						this->cursor++;
+					}
+				return 1;
+			}
+		
 	}
 	return 0;
 }
