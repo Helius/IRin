@@ -1,6 +1,14 @@
 #ifndef _MICRORL_H_
 #define _MICRORL_H_
 
+/*********** CONFIG SECTION **************/
+#define _COMMAND_LINE_LEN 32
+#define _COMMAND_TOKEN_NMB 8
+#define _RING_HISTORY_LEN 48
+#define _PROMPT_DEFAUTL "IRin > "
+/********** END CONFIG SECTION ************/
+
+
 #define true  1
 #define false 0
 
@@ -40,25 +48,26 @@
 
 #define KEY_DEL 127 /**< Delete (not a real control character...) */
 
-
-#define _HISTORY_LEVELS		10
-#define _COMMAND_LINE_LEN 128
-#define _COMMAND_TOKEN_NMB 8
-#define _PROMPT_DEFAUTL "IRin > "
-
 #define _ESC_BRACKET  1
 #define _ESC_HOME     2
 #define _ESC_END      3
 
+typedef struct {
+	char ring_buf [_RING_HISTORY_LEN];
+	unsigned char begin;
+	unsigned char end;
+	unsigned char cur;
+} ring_history_t;
 
 typedef struct {
+	ring_history_t ring_hist;
 	char * prompt_str;
 	char cmdline [_COMMAND_LINE_LEN];
 	int cmdpos;                           // last position in command line
 	int cursor;
 	char const * tkn_arr [_COMMAND_TOKEN_NMB];
 	int (*execute) (int argc, const char * const * argv );
-	char * (*get_complition) (int argc, const char * const * argv );	
+	char * (*get_completion) (int argc, const char * const * argv );	
 	void (*print) (char *);
 } microrl_t;
 
@@ -70,7 +79,7 @@ void microrl_init (microrl_t * this, void (*print)(char*));
 // must return NULL-terminated string, contain complite variant splitted by 'Whitespace'
 // If complite token found, it's must contain only one token to be complitted
 // Empty string if complite not found, and multiple string if there are some token
-void microrl_set_complite_callback (microrl_t * this, char * (*get_complition)(int, const char* const*));
+void microrl_set_complite_callback (microrl_t * this, char * (*get_completion)(int, const char* const*));
 
 // pointer to callback func, that called when user press 'Enter'
 // param: argc - argument count, argv - pointer array to token string

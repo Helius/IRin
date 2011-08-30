@@ -12,7 +12,7 @@ char ** compl_world [5];
 char * world0 = "fuck";
 char * world1 = "new";
 char * world2 = "help";
-char * world3 = "exit";
+char * world3 = "list";
 
 //*****************************************************************************
 void print (char * str)
@@ -21,13 +21,30 @@ void print (char * str)
 }
 
 //*****************************************************************************
+void print_help ()
+{
+	print ("Use TAB key for completion\nCommand:\n\thelp - this message\n\tlist - list all commands in tree\n");
+}
+
+//*****************************************************************************
 int execute (int argc, const char * const * tkn_arr)
 {
+	int i = 0;
 	DBG ("execute:\n");
-	for (int i = 0; i < argc; i++) {
-		DBG ("[%s] ", tkn_arr[i]);
+	while (i < argc) {
+		if (strcmp (tkn_arr[i], "help") == 0) {
+			print ("microrl library v 1.0\n");
+			print_help ();
+			return 1;
+		} else {
+			DBG ("[%s] ", tkn_arr[i]);
+			print ("ERROR: Command '");
+			print (tkn_arr[i]);
+			print ("' Not found.\n");
+			return 1; //TODO:remove it, need to return 1 if command recognize
+		}
+		i++;
 	}
-	DBG ("\n");
 	return 0;
 }
 
