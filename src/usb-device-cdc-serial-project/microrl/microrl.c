@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include "microrl.h"
-//#include <utility/trace.h>
 #include <string.h>
 #include <ctype.h>
+
+#define DBG(...) printf("\033[33m");printf(__VA_ARGS__);printf("\033[0m");
 
 static const char * prompt_default = _PROMPT_DEFAUTL;
 
@@ -57,6 +58,7 @@ void microrl_init (microrl_t * this, void (*print) (char *))
 	this->get_complition = NULL;
 	this->prompt_str = prompt_default;
 	this->print = print;
+	print_prompt (this);
 }
 
 //*****************************************************************************
@@ -71,10 +73,6 @@ void microrl_set_execute_callback (microrl_t * this, int (*execute)(int, const c
 	this->execute = execute;
 }
 
-#define _ESC_BRACKET  1
-#define _ESC_HOME     2
-#define _ESC_END      3
-
 //*****************************************************************************
 int escape_process (microrl_t * this, char ch)
 {
@@ -84,10 +82,10 @@ int escape_process (microrl_t * this, char ch)
 		seq = _ESC_BRACKET;	
 	} else if (seq == _ESC_BRACKET) {
 		if (ch == 'A') {
-//			printf ("Up");
+//			DBG ("Up");
 			return 1;
 		} else if (ch == 'B') {
-//			printf ("Down");
+//			DBG ("Down");
 			return 1;
 		} else if (ch == 'C') {
 			if (this->cursor < this->cmdpos) {
@@ -134,13 +132,11 @@ void microrl_insert_char (microrl_t * this, int ch)
 	int status;
 	static int escape = false;
 
-//	printf (" (%c:%d) ", ch, ch);
-//	return;
+//	DBG (" (%c:%d) ", ch, ch);
 
 	if (escape) {
-		if (escape_process(this, ch)) {
+		if (escape_process(this, ch))
 			escape = 0;
-		}
 	} else {
 		switch (ch) {
 			//-----------------------------------------------------
@@ -148,11 +144,9 @@ void microrl_insert_char (microrl_t * this, int ch)
 			case KEY_LF:
 				terminal_newline (this);
 				status = split (this->cmdline, this->tkn_arr);
-	//			printf ("status: %d\n", status);
 				if (status == -1)
-					printf ("ERROR: Max command amount is %d\n", _COMMAND_TOKEN_NMB);
+					this->print ("ERROR: Max command amount exseed\n");
 				if ((status > 0) && (this->execute != NULL)) {
-	//				printf ("\t\tcall execute\n");
 					this->execute (status, this->tkn_arr);
 				}
 				print_prompt (this);
@@ -163,11 +157,31 @@ void microrl_insert_char (microrl_t * this, int ch)
 				break;
 			//-----------------------------------------------------
 			case KEY_HT:
-	//			char ** compl_token; 
-	//			//TODO: call callback, if not NULL
-	//			if (get_complition != NULL) {
-	//				compl_token = get_complition ();
-	//			}
+			{
+				char ** compl_token; 
+				int status = split (this->cmdline, this->tkn_arr);
+				if (this->get_complition != NULL) {
+					compl_token = this->get_complition (status, this->tkn_arr);
+					int i = 0;
+					while (compl_token [i] != NULL) {
+						this->print (compl_token[i]);
+						this->print (" ");
+						i++;
+					}
+					terminal_newline (this);
+					print_prompt (this);
+					i = 0;
+					char chn [2] = {0,0};
+					while (i < this->cursor) {
+						if (this->cmdline[i] != '\0')
+							chn[0] = this->cmdline[i];
+						else
+							chn[0] = ' ';
+						this->print (chn);
+						i++;
+					}
+				}
+			}
 				break;
 			//-----------------------------------------------------
 			case KEY_ESC:

@@ -6,21 +6,45 @@
 #include <fcntl.h>
 #include <unistd.h> 
 
+#define DBG(...) printf("\033[33m");printf(__VA_ARGS__);printf("\033[0m");
+
+char ** compl_world [5];
+char * world0 = "fuck";
+char * world1 = "new";
+char * world2 = "help";
+char * world3 = "exit";
+
 //*****************************************************************************
 void print (char * str)
 {
-	fprintf (stderr, "%s", str);
+	fprintf (stdout, "%s", str);
 }
 
 //*****************************************************************************
 int execute (int argc, const char * const * tkn_arr)
 {
-	printf ("execute:\n");
+	DBG ("execute:\n");
 	for (int i = 0; i < argc; i++) {
-	int j = 0;
-		printf ("[%s] ", tkn_arr[i]);
+		DBG ("[%s] ", tkn_arr[i]);
 	}
-	printf ("\n");
+	DBG ("\n");
+	return 0;
+}
+
+//*****************************************************************************
+char ** complit (int argc, const char * const * tkn_arr)
+{
+	DBG ("\ncomplite for:\n");
+	for (int i = 0; i < argc; i++) {
+		DBG (" [%s]", tkn_arr[i]);
+	}
+	DBG ("\n");
+	compl_world [0] = world0;
+	compl_world [1] = world1;
+	compl_world [2] = world2;
+	compl_world [3] = world3;
+	compl_world [4] = NULL;
+	return compl_world;
 }
 
 //*****************************************************************************
@@ -39,17 +63,18 @@ char get_char (void)
 }
 
 //*****************************************************************************
-void main (int argc, char ** argv)
+int main (int argc, char ** argv)
 {
 	// microrl object and pointer on it
 	microrl_t rl;
 	microrl_t * prl = &rl;
-	int i;
 	microrl_init (prl, print);
 	microrl_set_execute_callback (prl, execute);
+	microrl_set_complite_callback (prl, complit);
 	
 	while (1) {
 		microrl_insert_char (prl, get_char());
 	}
+	return 0;
 }
 

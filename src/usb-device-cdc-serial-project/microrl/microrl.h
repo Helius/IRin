@@ -46,6 +46,11 @@
 #define _COMMAND_TOKEN_NMB 8
 #define _PROMPT_DEFAUTL "IRin > "
 
+#define _ESC_BRACKET  1
+#define _ESC_HOME     2
+#define _ESC_END      3
+
+
 typedef struct {
 	char * prompt_str;
 	char cmdline [_COMMAND_LINE_LEN];
