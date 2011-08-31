@@ -36,22 +36,18 @@ void print_hist (ring_history_t * this)
 			printf (" ");
 	}
 	printf ("\n");
-	for (int i = 0; i < _RING_HISTORY_LEN; i++) {
-		printf ("%d ", this->ring_buf[i]);
-	}
-	printf ("\n");
 }
 
 //*****************************************************************************
 static void hist_erase_older (ring_history_t * this)
 {
-	DBG ("hist erase older\n");
+//	DBG ("hist erase older\n");
 	int new_pos = this->begin + this->ring_buf [this->begin] + 1;
 	if (new_pos >= _RING_HISTORY_LEN)
 		new_pos = new_pos - _RING_HISTORY_LEN;
 	
 	this->begin = new_pos;
-	DBG ("begin now %d\n", this->begin);
+//	DBG ("begin now %d\n", this->begin);
 }
 
 //*****************************************************************************
@@ -60,11 +56,11 @@ static int hist_is_space_for_new (ring_history_t * this, int len)
 	if (this->ring_buf [this->begin] == 0)
 		return true;
 	if (this->end >= this->begin) {
-		DBG ("hist + there is %d byte", _RING_HISTORY_LEN - this->end + this->begin - 1);
+//		DBG ("hist + there is %d byte", _RING_HISTORY_LEN - this->end + this->begin - 1);
 		if (_RING_HISTORY_LEN - this->end + this->begin - 1 > len)
 			return true;
 	}	else {
-		DBG ("hist - there is %d - %d - 1 = %d byte", this->begin, this->end,  this->begin - this->end - 1);
+//		DBG ("hist - there is %d - %d - 1 = %d byte", this->begin, this->end,  this->begin - this->end - 1);
 		if (this->begin - this->end - 1> len)
 			return true;
 	}
@@ -74,9 +70,9 @@ static int hist_is_space_for_new (ring_history_t * this, int len)
 //*****************************************************************************
 static void hist_save_line (ring_history_t * this, char * line, int len)
 {
-	DBG ("\nsave to history %d byte\n", len);
+//	DBG ("\nsave to history %d byte\n", len);
 	while (!hist_is_space_for_new (this, len)) {
-		DBG ("hist no space for new\n");
+//		DBG ("hist no space for new\n");
 		hist_erase_older (this);
 	}
 	// if it's first line
@@ -97,7 +93,7 @@ static void hist_save_line (ring_history_t * this, char * line, int len)
 		this->end -= _RING_HISTORY_LEN;
 	this->ring_buf [this->end] = 0;
 	this->cur = 0;
-	DBG ("\nbegin %d, end %d\n", this->begin,  this->end);
+//	DBG ("\nbegin %d, end %d\n", this->begin,  this->end);
 	print_hist (this);
 }
 
@@ -106,37 +102,42 @@ static void hist_save_line (ring_history_t * this, char * line, int len)
 static int hist_restore_line (ring_history_t * this, char * line, int dir)
 {
 	int cnt = 0;
+	// count history record	
 	int header = this->begin;
 	while (this->ring_buf [header] != 0) {
 		header += this->ring_buf [header] + 1;
+		if (header >= _RING_HISTORY_LEN)
+			header -= _RING_HISTORY_LEN; 
 		cnt++;
-	}	
+	}
 
 	if (dir == _HIST_UP) {
 //		DBG ("found %d in history\n", cnt);
 		if (cnt >= this->cur) {
 			int header = this->begin;
 			int j = 0;
-
+			// found record for 'this->cur' index
 			while ((this->ring_buf [header] != 0) && (cnt - j -1 != this->cur)) {
 				header += this->ring_buf [header] + 1;
 				if (header >= _RING_HISTORY_LEN)
 					header -= _RING_HISTORY_LEN;
-//				DBG ("header %d\n", header);
 				j++;
 			}
+//			DBG ("use header %d, %d value %d\n", j, header, this->ring_buf[header]);
 //			DBG ("restore %d len is %d\n", j, this->ring_buf[header]);
-			if (this->ring_buf[header])
-				this->cur++;
-			if (this->ring_buf [header] + header < _RING_HISTORY_LEN) {
-				memcpy (line, this->ring_buf + header + 1, this->ring_buf[header]);
-			} else {
-				int part0 = _RING_HISTORY_LEN - header - 1;
-//				DBG ("first part is %d\n", part0);
-				memcpy (line, this->ring_buf + header + 1, part0);
-				memcpy (line + part0, this->ring_buf, this->ring_buf[header] - part0);
+			if (this->ring_buf[header]) {
+					this->cur++;
+				// obtain saved line
+				if (this->ring_buf [header] + header < _RING_HISTORY_LEN) {
+					memcpy (line, this->ring_buf + header + 1, this->ring_buf[header]);
+				} else {
+					int part0 = _RING_HISTORY_LEN - header - 1;
+	//				DBG ("first part is %d\n", part0);
+					memcpy (line, this->ring_buf + header + 1, part0);
+					memcpy (line + part0, this->ring_buf, this->ring_buf[header] - part0);
+				}
+				return this->ring_buf[header];
 			}
-			return this->ring_buf[header];
 		}
 	} else {
 		if (this->cur > 0) {
@@ -152,7 +153,15 @@ static int hist_restore_line (ring_history_t * this, char * line, int dir)
 				j++;
 			}
 //			DBG ("restore %d len is %d\n", j, this->ring_buf[header]);
-			memcpy (line, this->ring_buf + header + 1, this->ring_buf[header]);
+			if (this->ring_buf [header] + header < _RING_HISTORY_LEN) {
+				memcpy (line, this->ring_buf + header + 1, this->ring_buf[header]);
+			} else {
+				int part0 = _RING_HISTORY_LEN - header - 1;
+//				DBG ("first part is %d\n", part0);
+				memcpy (line, this->ring_buf + header + 1, part0);
+				memcpy (line + part0, this->ring_buf, this->ring_buf[header] - part0);
+			}
+//			memcpy (line, this->ring_buf + header + 1, this->ring_buf[header]);
 			return this->ring_buf[header];
 		}
 
@@ -201,6 +210,37 @@ static void terminal_newline (microrl_t * this)
 	this->print ("\n\r");
 }
 
+static void terminal_set_cursor (microrl_t * this, int pos)
+{
+	char str[6];
+	if (pos > 0)
+		snprintf (str, 6, "\033[%dC", pos);
+	else if (pos < 0)
+		snprintf (str, 6, "\033[%dD", pos&0xFF);
+}
+
+//*****************************************************************************
+// print cmdline to screen, replace '\0' to wihitespace 
+void terminal_print_line (microrl_t * this, int offset)
+{
+//	this->print ("\033[s");
+	this->print ("\033[100D"); //TODO: 100 is magic
+	this->print ("\033[7C");   //TODO: set cursor position after prompt
+	this->print ("\033[K");
+	char nch [] = {0,0};
+	int len = this->cmdlen;
+	for (int i = 0; i < len; i++) {
+		nch [0] = this->cmdline [i];
+		if (nch[0] == '\0')
+			nch[0] = ' ';
+		this->print (nch);
+	}
+//	this->print ("\033[u");
+//	if (offset > 0)
+//		this->print ("\033[C");
+	terminal_set_cursor (this, offset);
+}
+
 //*****************************************************************************
 void microrl_init (microrl_t * this, void (*print) (char *)) 
 {
@@ -240,51 +280,18 @@ int escape_process (microrl_t * this, char ch)
 		seq = _ESC_BRACKET;	
 	} else if (seq == _ESC_BRACKET) {
 		if (ch == 'A') {
-			this->cmdlen = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_UP);
-			if (this->cmdlen) {
-			
-				while (this->cursor>0) {
-					terminal_backspace (this);
-					this->cursor--;
-				}
-
-				int i = 0;
-				char chn [2] = {0,0};
-				while (i < this->cmdlen) {
-					if (this->cmdline[i] != '\0')
-						chn[0] = this->cmdline[i];
-					else
-						chn[0] = ' ';
-					this->print (chn);
-					i++;
-					this->cursor++;
-				}
+			int len = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_UP);
+			if (len) {
+				this->cursor = this->cmdlen = len;
+				terminal_print_line (this, 1);
 			}
-
 			return 1;
 		} else if (ch == 'B') {
-			this->cmdlen = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_DOWN);
-			if (this->cmdlen) {
-			
-				while (this->cursor>0) {
-					terminal_backspace (this);
-					this->cursor--;
-				}
-
-				int i = 0;
-				char chn [2] = {0,0};
-				while (i < this->cmdlen) {
-					if (this->cmdline[i] != '\0')
-						chn[0] = this->cmdline[i];
-					else
-						chn[0] = ' ';
-					this->print (chn);
-					i++;
-					this->cursor++;
-				}
+			int len = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_DOWN);
+			if (len) {
+				this->cursor = this->cmdlen = len;
+				terminal_print_line (this, 1);
 			}
-
-			return 1;
 			return 1;
 		} else if (ch == 'C') {
 			if (this->cursor < this->cmdlen) {
@@ -324,26 +331,6 @@ int escape_process (microrl_t * this, char ch)
 	return 0;
 }
 
-//*****************************************************************************
-// print cmdline to screen, replace '\0' to wihitespace 
-void terminal_print_line (microrl_t * this, int offset)
-{
-	this->print ("\033[s");
-	this->print ("\033[100D"); //TODO: 100 is magic
-	this->print ("\033[7C");
-	this->print ("\033[K");
-	char nch [] = {0,0};
-	int len = this->cmdlen;
-	for (int i = 0; i < len; i++) {
-		nch [0] = this->cmdline [i];
-		if (nch[0] == '\0')
-			nch[0] = ' ';
-		this->print (nch);
-	}
-	this->print ("\033[u");
-	if (offset > 0)
-		this->print ("\033[C");
-}
 
 //*****************************************************************************
 // insert len char of text at cursor position
