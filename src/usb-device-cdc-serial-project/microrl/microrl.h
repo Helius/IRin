@@ -2,9 +2,9 @@
 #define _MICRORL_H_
 
 /*********** CONFIG SECTION **************/
-#define _COMMAND_LINE_LEN 32
+#define _COMMAND_LINE_LEN 16
 #define _COMMAND_TOKEN_NMB 8
-#define _RING_HISTORY_LEN 48
+#define _RING_HISTORY_LEN 32
 #define _PROMPT_DEFAUTL "IRin > "
 /********** END CONFIG SECTION ************/
 

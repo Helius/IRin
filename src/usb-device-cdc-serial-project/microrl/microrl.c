@@ -23,13 +23,10 @@ void print_hist (ring_history_t * this)
 	printf ("\n");
 	int header = this->begin;
 	for (int i = 0; i < _RING_HISTORY_LEN; i++) {
-		if (i == header) {
-			printf ("%d", this->ring_buf [header]);
-			header = this->ring_buf [header] + header + 1;
-			if (header >= _RING_HISTORY_LEN)
-				header -= _RING_HISTORY_LEN;
-		} else
+		if (isalpha(this->ring_buf[i]))
 			printf ("%c", this->ring_buf[i]);
+		else 
+			printf ("%d", this->ring_buf[i]);
 	}
 	printf ("\n");
 	for (int i = 0; i < _RING_HISTORY_LEN; i++) {
@@ -37,6 +34,10 @@ void print_hist (ring_history_t * this)
 			printf ("e");
 		else 
 			printf (" ");
+	}
+	printf ("\n");
+	for (int i = 0; i < _RING_HISTORY_LEN; i++) {
+		printf ("%d ", this->ring_buf[i]);
 	}
 	printf ("\n");
 }
@@ -50,6 +51,7 @@ static void hist_erase_older (ring_history_t * this)
 		new_pos = new_pos - _RING_HISTORY_LEN;
 	
 	this->begin = new_pos;
+	DBG ("begin now %d\n", this->begin);
 }
 
 //*****************************************************************************
@@ -58,8 +60,8 @@ static int hist_is_space_for_new (ring_history_t * this, int len)
 	if (this->ring_buf [this->begin] == 0)
 		return true;
 	if (this->end >= this->begin) {
-		DBG ("hist + there is %d byte", _RING_HISTORY_LEN - this->end + this->begin - 2);
-		if (_RING_HISTORY_LEN - this->end + this->begin - 2 > len)
+		DBG ("hist + there is %d byte", _RING_HISTORY_LEN - this->end + this->begin - 1);
+		if (_RING_HISTORY_LEN - this->end + this->begin - 1 > len)
 			return true;
 	}	else {
 		DBG ("hist - there is %d - %d - 1 = %d byte", this->begin, this->end,  this->begin - this->end - 1);
@@ -78,22 +80,29 @@ static void hist_save_line (ring_history_t * this, char * line, int len)
 		hist_erase_older (this);
 	}
 	// if it's first line
-	if (this->ring_buf [this->begin] == 0)
+	if (this->ring_buf [this->begin] == 0) 
 		this->ring_buf [this->begin] = len;
 	
 	// store line
-	memcpy (this->ring_buf + this->end + 1, line, len);
-
+	if (len < _RING_HISTORY_LEN-this->end-1)
+		memcpy (this->ring_buf + this->end + 1, line, len);
+	else {
+		int part_len = _RING_HISTORY_LEN-this->end-1;
+		memcpy (this->ring_buf + this->end + 1, line, part_len);
+		memcpy (this->ring_buf, line + part_len, len - part_len);
+	}
 	this->ring_buf [this->end] = len;
 	this->end = this->end + len + 1;
 	if (this->end >= _RING_HISTORY_LEN)
 		this->end -= _RING_HISTORY_LEN;
 	this->ring_buf [this->end] = 0;
 	this->cur = 0;
+	DBG ("\nbegin %d, end %d\n", this->begin,  this->end);
 	print_hist (this);
 }
 
 //*****************************************************************************
+// copy saved line to 'line' and return size of line
 static int hist_restore_line (ring_history_t * this, char * line, int dir)
 {
 	int cnt = 0;
@@ -119,7 +128,14 @@ static int hist_restore_line (ring_history_t * this, char * line, int dir)
 //			DBG ("restore %d len is %d\n", j, this->ring_buf[header]);
 			if (this->ring_buf[header])
 				this->cur++;
-			memcpy (line, this->ring_buf + header + 1, this->ring_buf[header]);
+			if (this->ring_buf [header] + header < _RING_HISTORY_LEN) {
+				memcpy (line, this->ring_buf + header + 1, this->ring_buf[header]);
+			} else {
+				int part0 = _RING_HISTORY_LEN - header - 1;
+//				DBG ("first part is %d\n", part0);
+				memcpy (line, this->ring_buf + header + 1, part0);
+				memcpy (line + part0, this->ring_buf, this->ring_buf[header] - part0);
+			}
 			return this->ring_buf[header];
 		}
 	} else {
@@ -224,8 +240,6 @@ int escape_process (microrl_t * this, char ch)
 		seq = _ESC_BRACKET;	
 	} else if (seq == _ESC_BRACKET) {
 		if (ch == 'A') {
-//			DBG ("Up");
-				
 			this->cmdlen = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_UP);
 			if (this->cmdlen) {
 			
@@ -249,7 +263,6 @@ int escape_process (microrl_t * this, char ch)
 
 			return 1;
 		} else if (ch == 'B') {
-//			DBG ("Down");
 			this->cmdlen = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_DOWN);
 			if (this->cmdlen) {
 			
@@ -390,8 +403,8 @@ void microrl_insert_char (microrl_t * this, int ch)
 					this->print ("ERROR: Max command amount exseed\n");
 				if ((status > 0) && (this->execute != NULL)) {
 					if (this->execute (status, this->tkn_arr)) {
-//						if (this->cmdlen > 0)
-//							hist_save_line (&this->ring_hist, this->cmdline, this->cmdlen);
+						if (this->cmdlen > 0)
+							hist_save_line (&this->ring_hist, this->cmdline, this->cmdlen);
 					}
 				}
 				print_prompt (this);
@@ -442,7 +455,6 @@ void microrl_insert_char (microrl_t * this, int ch)
 				break;
 			else if ((ch == ' ') && (prevch == ' ')) 
 				break;
-			
 			prevch = ch;
 			if (microrl_insert_text (this, (char*)&ch, 1))
 				terminal_print_line (this, 1);
