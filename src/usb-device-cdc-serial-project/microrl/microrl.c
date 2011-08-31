@@ -445,9 +445,6 @@ void microrl_insert_char (microrl_t * this, int ch)
 			default:
 			if ((ch == ' ') && (this->cmdlen == 0)) 
 				break;
-			else if ((ch == ' ') && (prevch == ' ')) 
-				break;
-			prevch = ch;
 			if (microrl_insert_text (this, (char*)&ch, 1))
 				terminal_print_line (this, 0);
 			break;
