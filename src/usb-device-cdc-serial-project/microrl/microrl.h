@@ -63,7 +63,7 @@ typedef struct {
 	ring_history_t ring_hist;
 	char * prompt_str;
 	char cmdline [_COMMAND_LINE_LEN];
-	int cmdpos;                           // last position in command line
+	int cmdlen;                           // last position in command line
 	int cursor;
 	char const * tkn_arr [_COMMAND_TOKEN_NMB];
 	int (*execute) (int argc, const char * const * argv );

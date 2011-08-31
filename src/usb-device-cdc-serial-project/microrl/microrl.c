@@ -5,7 +5,7 @@
 
 #define DBG(...) printf("\033[33m");printf(__VA_ARGS__);printf("\033[0m");
 
-static const char * prompt_default = _PROMPT_DEFAUTL;
+char * prompt_default = _PROMPT_DEFAUTL;
 
 
 #define _HIST_UP 0
@@ -190,11 +190,12 @@ static void terminal_newline (microrl_t * this)
 void microrl_init (microrl_t * this, void (*print) (char *)) 
 {
 	memset(this->cmdline, 0, _COMMAND_LINE_LEN);
+	this->cmdline[1] = '\n';
 	memset(this->ring_hist.ring_buf, 0, _RING_HISTORY_LEN);
 	this->ring_hist.begin = 0;
 	this->ring_hist.end = 0;
 	this->ring_hist.cur = 0;
-	this->cmdpos =0;
+	this->cmdlen =0;
 	this->cursor = 0;
 	this->execute = NULL;
 	this->get_completion = NULL;
@@ -226,8 +227,8 @@ int escape_process (microrl_t * this, char ch)
 		if (ch == 'A') {
 //			DBG ("Up");
 				
-			this->cmdpos = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_UP);
-			if (this->cmdpos) {
+			this->cmdlen = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_UP);
+			if (this->cmdlen) {
 			
 				while (this->cursor>0) {
 					terminal_backspace (this);
@@ -236,7 +237,7 @@ int escape_process (microrl_t * this, char ch)
 
 				int i = 0;
 				char chn [2] = {0,0};
-				while (i < this->cmdpos) {
+				while (i < this->cmdlen) {
 					if (this->cmdline[i] != '\0')
 						chn[0] = this->cmdline[i];
 					else
@@ -250,8 +251,8 @@ int escape_process (microrl_t * this, char ch)
 			return 1;
 		} else if (ch == 'B') {
 //			DBG ("Down");
-			this->cmdpos = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_DOWN);
-			if (this->cmdpos) {
+			this->cmdlen = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_DOWN);
+			if (this->cmdlen) {
 			
 				while (this->cursor>0) {
 					terminal_backspace (this);
@@ -260,7 +261,7 @@ int escape_process (microrl_t * this, char ch)
 
 				int i = 0;
 				char chn [2] = {0,0};
-				while (i < this->cmdpos) {
+				while (i < this->cmdlen) {
 					if (this->cmdline[i] != '\0')
 						chn[0] = this->cmdline[i];
 					else
@@ -274,7 +275,7 @@ int escape_process (microrl_t * this, char ch)
 			return 1;
 			return 1;
 		} else if (ch == 'C') {
-			if (this->cursor < this->cmdpos) {
+			if (this->cursor < this->cmdlen) {
 				this->print ("\033[C");
 				this->cursor++;
 			}
@@ -300,7 +301,7 @@ int escape_process (microrl_t * this, char ch)
 				}
 				return 1;
 			} else if (seq == _ESC_END) {
-					while (this->cursor < this->cmdpos) {
+					while (this->cursor < this->cmdlen) {
 						this->print ("\033[C");
 						this->cursor++;
 					}
@@ -312,9 +313,54 @@ int escape_process (microrl_t * this, char ch)
 }
 
 //*****************************************************************************
+void terminal_clear_line (microrl_t * this)
+{
+	this->print ("\033[K");
+}
+
+//*****************************************************************************
+// print cmdline to screen, replace '\0' to wihitespace 
+void terminal_print_line (microrl_t * this, int pos)
+{
+	terminal_clear_line (this);
+	char nch [] = {0,0};
+	int len = this->cmdlen;
+	for (int i = pos; i < len; i++) {
+		nch [0] = this->cmdline [i];
+		if (nch[0] == '\0')
+			nch[0] = ' ';
+		this->print (nch);
+	}
+	for (int i = pos; i < len - 1; i++) {
+		this->print ("\033[D");
+	}
+}
+
+//*****************************************************************************
+// insert len char of text at cursor position
+static int microrl_insert_text (microrl_t * this, char * text, int len)
+{
+	if (this->cmdlen + len < _COMMAND_LINE_LEN - 2) {
+		memmove (this->cmdline + this->cursor + len,
+						 this->cmdline + this->cursor,
+						 this->cmdlen - this->cursor + 2);
+		for (int i = 0; i < len; i++) {
+			this->cmdline [this->cursor + i] = text [i];
+			if (this->cmdline [this->cursor + i] == ' ') {
+				this->cmdline [this->cursor + i] = 0;
+			}
+		}
+		this->cursor += len;
+		this->cmdlen += len;
+		return true;
+	}
+	return false;
+}
+
+//*****************************************************************************
 void microrl_insert_char (microrl_t * this, int ch)
 {
-	char nch [3];
+	static char prevch = 'a';
 	int status;
 	static int escape = false;
 
@@ -334,12 +380,12 @@ void microrl_insert_char (microrl_t * this, int ch)
 					this->print ("ERROR: Max command amount exseed\n");
 				if ((status > 0) && (this->execute != NULL)) {
 					if (this->execute (status, this->tkn_arr)) {
-//						if (this->cmdpos > 0)
-//							hist_save_line (&this->ring_hist, this->cmdline, this->cmdpos);
+//						if (this->cmdlen > 0)
+//							hist_save_line (&this->ring_hist, this->cmdline, this->cmdlen);
 					}
 				}
 				print_prompt (this);
-				this->cmdpos = 0;
+				this->cmdlen = 0;
 				this->cursor = 0;
 				memset(this->cmdline, 0, _COMMAND_LINE_LEN);
 				this->ring_hist.cur = 0;
@@ -383,7 +429,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 					terminal_backspace (this);
 				}
 				memset(this->cmdline, 0, _COMMAND_LINE_LEN);
-				this->cmdpos = 0;
+				this->cmdlen = 0;
 				break;
 			//-----------------------------------------------------
 			case KEY_DEL://TODO: rewrite it!
@@ -391,11 +437,11 @@ void microrl_insert_char (microrl_t * this, int ch)
 					terminal_backspace (this);
 					this->print ("\033[K");
 
-					memcpy (this->cmdline + this->cursor-1, this->cmdline + this->cursor, this->cmdpos - this->cursor+1);
-					this->cmdline [this->cmdpos] ='\0';
+					memcpy (this->cmdline + this->cursor-1, this->cmdline + this->cursor, this->cmdlen - this->cursor+1);
+					this->cmdline [this->cmdlen] ='\0';
 					this->cursor--;
-					this->cmdpos--;
-					for (int i = this->cursor; i < this->cmdpos; i++) {
+					this->cmdlen--;
+					for (int i = this->cursor; i < this->cmdlen; i++) {
 						char chn [2] = {0,0};
 						chn [0] = this->cmdline [i];
 						if (chn[0] == '\0') {
@@ -403,31 +449,21 @@ void microrl_insert_char (microrl_t * this, int ch)
 						}
 						this->print (chn);
 					}
-					for (int i = this->cursor; i < this->cmdpos; i++) 
+					for (int i = this->cursor; i < this->cmdlen; i++) 
 						this->print ("\033[D");
 				}
 				break;
 			//-----------------------------------------------------
 			default:
-				if (this->cmdpos < _COMMAND_LINE_LEN - 1) {
-
-					if (ch == ' ') {
-						// no spaces at begin of line, and no twice space
-						if ((this->cmdpos == 0) || (this->cmdline [this->cmdpos-1] == '\0'))
-							break;
-						this->cmdline[this->cmdpos++] = '\0';
-						this->cursor++;
-					} else {
-						this->cmdline[this->cmdpos++] = ch;
-						this->cursor++;
-					}
-					this->cmdline[this->cmdpos] = '\0';
-				
-					nch[0] = ch;
-					nch[1] = '\0';
-					this->print (nch);
-				}
+			if ((ch == ' ') && (this->cmdlen == 0)) {
 				break;
+			} else if ((ch == ' ') && (prevch == ' ')) {
+				break;
+			}
+			prevch = ch;
+			if (microrl_insert_text (this, (char*)&ch, 1))
+				terminal_print_line (this, this->cursor-1);
+			break;
 		}
 	}
 }
