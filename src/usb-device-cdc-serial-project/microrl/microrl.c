@@ -375,9 +375,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 	static char prevch = 'a';
 	int status;
 	static int escape = false;
-
 //	DBG (" (%c:%d) ", ch, ch);
-
 	if (escape) {
 		if (escape_process(this, ch))
 			escape = 0;
@@ -418,16 +416,9 @@ void microrl_insert_char (microrl_t * this, int ch)
 					}
 					terminal_newline (this);
 					print_prompt (this);
-					i = 0;
-					char chn [2] = {0,0};
-					while (i < this->cursor) {
-						if (this->cmdline[i] != '\0')
-							chn[0] = this->cmdline[i];
-						else
-							chn[0] = ' ';
-						this->print (chn);
-						i++;
-					}
+					terminal_print_line (this, 0);
+					for (int i = 0; i < this->cursor; i++)
+						this->print("\033[C");
 				}
 			}
 				break;
@@ -447,11 +438,11 @@ void microrl_insert_char (microrl_t * this, int ch)
 			break;
 			//-----------------------------------------------------
 			default:
-			if ((ch == ' ') && (this->cmdlen == 0)) {
+			if ((ch == ' ') && (this->cmdlen == 0)) 
 				break;
-			} else if ((ch == ' ') && (prevch == ' ')) {
+			else if ((ch == ' ') && (prevch == ' ')) 
 				break;
-			}
+			
 			prevch = ch;
 			if (microrl_insert_text (this, (char*)&ch, 1))
 				terminal_print_line (this, 1);
