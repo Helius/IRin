@@ -144,29 +144,28 @@ static int hist_restore_line (ring_history_t * this, char * line, int dir)
 	return 0;
 }
 
-
-
 //*****************************************************************************
-static char * find_zerro (char * str)
+static int split (microrl_t * this)
 {
-	while (*(str++) != '\0');
-	return str++;
-}
-
-//*****************************************************************************
-static int split (char * cmd_line, const char ** tkn_arr)
-{
-	char * pos = cmd_line;
 	int i = 0;
-	while (*pos != '\0') {
-		tkn_arr[i++] = pos;
-		if (i > _COMMAND_TOKEN_NMB) {
+	int ind = 0;
+	while (1) {
+		while ((this->cmdline [ind] == '\0') && (ind < this->cmdlen)) {
+			ind++;
+		}
+		if (!(ind < this->cmdlen)) return i;
+		this->tkn_arr[i++] = this->cmdline + ind;
+		if (i >= _COMMAND_TOKEN_NMB) {
 			return -1;
 		}
-		pos = find_zerro (pos);
+		while ((this->cmdline [ind] != '\0') && (ind < this->cmdlen)) {
+			ind++;
+		}
+		if (!(ind < this->cmdlen)) return i;
 	}
 	return i;
 }
+
 
 //*****************************************************************************
 static void print_prompt (microrl_t * this)
@@ -313,34 +312,31 @@ int escape_process (microrl_t * this, char ch)
 }
 
 //*****************************************************************************
-void terminal_clear_line (microrl_t * this)
-{
-	this->print ("\033[K");
-}
-
-//*****************************************************************************
 // print cmdline to screen, replace '\0' to wihitespace 
-void terminal_print_line (microrl_t * this, int pos)
+void terminal_print_line (microrl_t * this, int offset)
 {
-	terminal_clear_line (this);
+	this->print ("\033[s");
+	this->print ("\033[100D"); //TODO: 100 is magic
+	this->print ("\033[7C");
+	this->print ("\033[K");
 	char nch [] = {0,0};
 	int len = this->cmdlen;
-	for (int i = pos; i < len; i++) {
+	for (int i = 0; i < len; i++) {
 		nch [0] = this->cmdline [i];
 		if (nch[0] == '\0')
 			nch[0] = ' ';
 		this->print (nch);
 	}
-	for (int i = pos; i < len - 1; i++) {
-		this->print ("\033[D");
-	}
+	this->print ("\033[u");
+	if (offset > 0)
+		this->print ("\033[C");
 }
 
 //*****************************************************************************
 // insert len char of text at cursor position
 static int microrl_insert_text (microrl_t * this, char * text, int len)
 {
-	if (this->cmdlen + len < _COMMAND_LINE_LEN - 2) {
+	if (this->cmdlen + len < _COMMAND_LINE_LEN - 1) {
 		memmove (this->cmdline + this->cursor + len,
 						 this->cmdline + this->cursor,
 						 this->cmdlen - this->cursor + 2);
@@ -355,6 +351,22 @@ static int microrl_insert_text (microrl_t * this, char * text, int len)
 		return true;
 	}
 	return false;
+}
+
+//*****************************************************************************
+// remove one char at cursor
+static void microrl_backspace (microrl_t * this)
+{
+	if (this->cursor > 0) {
+		terminal_backspace (this);
+		memmove (this->cmdline + this->cursor-1,
+						 this->cmdline + this->cursor,
+						 this->cmdlen-this->cursor+1);
+		this->cursor--;
+		this->cmdline [this->cmdlen] = '\0';
+		this->cmdlen--;
+		terminal_print_line (this, -1);
+	}
 }
 
 //*****************************************************************************
@@ -375,7 +387,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 			case KEY_CR:
 			case KEY_LF:
 				terminal_newline (this);
-				status = split (this->cmdline, this->tkn_arr);
+				status = split (this);
 				if (status == -1)
 					this->print ("ERROR: Max command amount exseed\n");
 				if ((status > 0) && (this->execute != NULL)) {
@@ -395,7 +407,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 			case KEY_HT:
 			{
 				char ** compl_token; 
-				int status = split (this->cmdline, this->tkn_arr);
+				int status = split (this);
 				if (this->get_completion != NULL) {
 					compl_token = this->get_completion (status, this->tkn_arr);
 					int i = 0;
@@ -425,34 +437,14 @@ void microrl_insert_char (microrl_t * this, int ch)
 				break;
 			//-----------------------------------------------------
 			case KEY_NAK: // Ctrl+U
-				while (this->cursor-- > 0) {
-					terminal_backspace (this);
+					while (this->cursor > 0) {
+					microrl_backspace (this);
 				}
-				memset(this->cmdline, 0, _COMMAND_LINE_LEN);
-				this->cmdlen = 0;
 				break;
 			//-----------------------------------------------------
-			case KEY_DEL://TODO: rewrite it!
-				if (this->cursor > 0) {
-					terminal_backspace (this);
-					this->print ("\033[K");
-
-					memcpy (this->cmdline + this->cursor-1, this->cmdline + this->cursor, this->cmdlen - this->cursor+1);
-					this->cmdline [this->cmdlen] ='\0';
-					this->cursor--;
-					this->cmdlen--;
-					for (int i = this->cursor; i < this->cmdlen; i++) {
-						char chn [2] = {0,0};
-						chn [0] = this->cmdline [i];
-						if (chn[0] == '\0') {
-							chn[0] = ' ';
-						}
-						this->print (chn);
-					}
-					for (int i = this->cursor; i < this->cmdlen; i++) 
-						this->print ("\033[D");
-				}
-				break;
+			case KEY_DEL: // Backspace
+				microrl_backspace (this);
+			break;
 			//-----------------------------------------------------
 			default:
 			if ((ch == ' ') && (this->cmdlen == 0)) {
@@ -462,7 +454,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 			}
 			prevch = ch;
 			if (microrl_insert_text (this, (char*)&ch, 1))
-				terminal_print_line (this, this->cursor-1);
+				terminal_print_line (this, 1);
 			break;
 		}
 	}
