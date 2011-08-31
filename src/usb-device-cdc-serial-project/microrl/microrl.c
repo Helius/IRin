@@ -210,13 +210,18 @@ static void terminal_newline (microrl_t * this)
 	this->print ("\n\r");
 }
 
-static void terminal_set_cursor (microrl_t * this, int pos)
+static void terminal_set_cursor (microrl_t * this, int offset)
 {
-	char str[6];
-	if (pos > 0)
-		snprintf (str, 6, "\033[%dC", pos);
-	else if (pos < 0)
-		snprintf (str, 6, "\033[%dD", pos&0xFF);
+	char str[16];
+	if (offset > 0) {
+		snprintf (str, 12, "\033[%dC", offset);
+//		DBG ("--- %s ---", str+1);
+		this->print (str);
+	}	else if (offset < 0) {
+		snprintf (str, 12, "\033[%dD", abs(offset));
+//		DBG ("--- %s ---", str+1);
+		this->print (str);
+	}
 }
 
 //*****************************************************************************
@@ -283,14 +288,14 @@ int escape_process (microrl_t * this, char ch)
 			int len = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_UP);
 			if (len) {
 				this->cursor = this->cmdlen = len;
-				terminal_print_line (this, 1);
+				terminal_print_line (this, 0);
 			}
 			return 1;
 		} else if (ch == 'B') {
 			int len = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_DOWN);
 			if (len) {
 				this->cursor = this->cmdlen = len;
-				terminal_print_line (this, 1);
+				terminal_print_line (this, 0);
 			}
 			return 1;
 		} else if (ch == 'C') {
@@ -365,7 +370,7 @@ static void microrl_backspace (microrl_t * this)
 		this->cursor--;
 		this->cmdline [this->cmdlen] = '\0';
 		this->cmdlen--;
-		terminal_print_line (this, -1);
+		terminal_print_line (this, (-1)*(this->cmdlen-this->cursor));
 	}
 }
 
@@ -444,7 +449,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 				break;
 			prevch = ch;
 			if (microrl_insert_text (this, (char*)&ch, 1))
-				terminal_print_line (this, 1);
+				terminal_print_line (this, 0);
 			break;
 		}
 	}
