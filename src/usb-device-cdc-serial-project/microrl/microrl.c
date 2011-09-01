@@ -243,7 +243,7 @@ static void terminal_reset_cursor (microrl_t * this)
 // print cmdline to screen, replace '\0' to wihitespace 
 void terminal_print_line (microrl_t * this, int offset)
 {
-	// set terminal cursor at begin of line
+	// reset terminal cursor at begin of line
 	terminal_reset_cursor (this);
 	this->print ("\033[K");    // delete all from begin to end
 	char nch [] = {0,0};
@@ -254,6 +254,7 @@ void terminal_print_line (microrl_t * this, int offset)
 			nch[0] = ' ';
 		this->print (nch);
 	}
+	// reset terminal cursor at begin of line
 	terminal_reset_cursor (this);
 	// set terminal cursor at microrl cursor
 	terminal_set_cursor (this, offset);
@@ -393,6 +394,29 @@ static void microrl_backspace (microrl_t * this)
 	}
 }
 
+#ifdef _USE_COMPLETE
+//*****************************************************************************
+void microrl_get_complite (microrl_t * this) 
+{
+	char ** compl_token; 
+	int status = split (this);
+	if (this->get_completion != NULL) {
+		compl_token = this->get_completion (status, this->tkn_arr);
+		int i = 0;
+		while (compl_token [i] != NULL) {
+			this->print (compl_token[i]);
+			this->print (" ");
+			i++;
+		}
+		terminal_newline (this);
+		print_prompt (this);
+		terminal_print_line (this, 0);
+		for (int i = 0; i < this->cursor; i++)
+			this->print("\033[C");
+	}
+}
+#endif
+
 //*****************************************************************************
 void microrl_insert_char (microrl_t * this, int ch)
 {
@@ -410,7 +434,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 				terminal_newline (this);
 				status = split (this);
 				if (status == -1)
-					this->print ("ERROR: Max command amount exseed\n");
+					this->print ("ERROR: Max token amount exseed\n");
 				if ((status > 0) && (this->execute != NULL)) {
 					if (this->execute (status, this->tkn_arr)) {
 #ifdef _USE_HISTORY
@@ -430,24 +454,9 @@ void microrl_insert_char (microrl_t * this, int ch)
 				break;
 			//-----------------------------------------------------
 			case KEY_HT:
-			{
-				char ** compl_token; 
-				int status = split (this);
-				if (this->get_completion != NULL) {
-					compl_token = this->get_completion (status, this->tkn_arr);
-					int i = 0;
-					while (compl_token [i] != NULL) {
-						this->print (compl_token[i]);
-						this->print (" ");
-						i++;
-					}
-					terminal_newline (this);
-					print_prompt (this);
-					terminal_print_line (this, 0);
-					for (int i = 0; i < this->cursor; i++)
-						this->print("\033[C");
-				}
-			}
+#ifdef _USE_COMPLETE
+			microrl_get_complite (this);
+#endif
 				break;
 			//-----------------------------------------------------
 			case KEY_ESC:
