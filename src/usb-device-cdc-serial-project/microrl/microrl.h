@@ -8,7 +8,6 @@
 #define _PROMPT_DEFAUTL "IRin > "
 /********** END CONFIG SECTION ************/
 
-
 #define true  1
 #define false 0
 
@@ -52,37 +51,42 @@
 #define _ESC_HOME     2
 #define _ESC_END      3
 
+
+// history struct, contain internal variable
+// history store in static ring buffer for memory saving
 typedef struct {
 	char ring_buf [_RING_HISTORY_LEN];
-	unsigned char begin;
-	unsigned char end;
-	unsigned char cur;
+	int begin;
+	int end;
+	int cur;
 } ring_history_t;
 
+// microrl struct, contain internal library data
 typedef struct {
-	ring_history_t ring_hist;
-	char * prompt_str;
-	char cmdline [_COMMAND_LINE_LEN];
-	int cmdlen;                           // last position in command line
-	int cursor;
-	char const * tkn_arr [_COMMAND_TOKEN_NMB];
-	int (*execute) (int argc, const char * const * argv );
-	char * (*get_completion) (int argc, const char * const * argv );	
-	void (*print) (char *);
+	ring_history_t ring_hist;          // history object
+	char * prompt_str;                 // pointer to prompt string
+	char cmdline [_COMMAND_LINE_LEN];  // cmdline buffer
+	int cmdlen;                        // last position in command line
+	int cursor;                        // input cursor
+	char const * tkn_arr [_COMMAND_TOKEN_NMB];                       // array of tocken for call 'execute' callback
+	int (*execute) (int argc, const char * const * argv );           // ptr to 'execute' callback
+	char * (*get_completion) (int argc, const char * const * argv ); // ptr to 'completion' callback
+	void (*print) (char *);                                          // ptr to 'print' callback
 } microrl_t;
 
 // init internal data, calls once at start up
 void microrl_init (microrl_t * this, void (*print)(char*));
 
 // set pointer to callback complition func, that called when user press 'Tab'
-// param: argc - argument count, argv - pointer array to token string
-// must return NULL-terminated string, contain complite variant splitted by 'Whitespace'
-// If complite token found, it's must contain only one token to be complitted
-// Empty string if complite not found, and multiple string if there are some token
+// callback func description:
+//   param: argc - argument count, argv - pointer array to token string
+//   must return NULL-terminated string, contain complite variant splitted by 'Whitespace'
+//   If complite token found, it's must contain only one token to be complitted
+//   Empty string if complite not found, and multiple string if there are some token
 void microrl_set_complite_callback (microrl_t * this, char * (*get_completion)(int, const char* const*));
 
 // pointer to callback func, that called when user press 'Enter'
-// param: argc - argument count, argv - pointer array to token string
+// execute func param: argc - argument count, argv - pointer array to token string
 void microrl_set_execute_callback (microrl_t * this, int (*execute)(int, const char* const*));
 
 // insert char to cmdline (for example call in usart RX interrupt)
