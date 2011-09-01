@@ -1,7 +1,14 @@
+/*
+Autor: Samoylov Eugene aka Helius (ghelius@gmail.com)
+BUGS and TODO:
+*) if HOME press on not empty cmdline, and input char, cursor jump to end of cmdline
+*/
+
 #include <stdio.h>
-#include "microrl.h"
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include "microrl.h"
 
 #define DBG(...) printf("\033[33m");printf(__VA_ARGS__);printf("\033[0m");
 
@@ -21,7 +28,6 @@ void print_hist (ring_history_t * this)
 			printf (" ");
 	}
 	printf ("\n");
-	int header = this->begin;
 	for (int i = 0; i < _RING_HISTORY_LEN; i++) {
 		if (isalpha(this->ring_buf[i]))
 			printf ("%c", this->ring_buf[i]);
@@ -41,13 +47,11 @@ void print_hist (ring_history_t * this)
 //*****************************************************************************
 static void hist_erase_older (ring_history_t * this)
 {
-//	DBG ("hist erase older\n");
 	int new_pos = this->begin + this->ring_buf [this->begin] + 1;
 	if (new_pos >= _RING_HISTORY_LEN)
 		new_pos = new_pos - _RING_HISTORY_LEN;
 	
 	this->begin = new_pos;
-//	DBG ("begin now %d\n", this->begin);
 }
 
 //*****************************************************************************
@@ -56,11 +60,9 @@ static int hist_is_space_for_new (ring_history_t * this, int len)
 	if (this->ring_buf [this->begin] == 0)
 		return true;
 	if (this->end >= this->begin) {
-//		DBG ("hist + there is %d byte", _RING_HISTORY_LEN - this->end + this->begin - 1);
 		if (_RING_HISTORY_LEN - this->end + this->begin - 1 > len)
 			return true;
 	}	else {
-//		DBG ("hist - there is %d - %d - 1 = %d byte", this->begin, this->end,  this->begin - this->end - 1);
 		if (this->begin - this->end - 1> len)
 			return true;
 	}
@@ -215,11 +217,9 @@ static void terminal_set_cursor (microrl_t * this, int offset)
 	char str[16];
 	if (offset > 0) {
 		snprintf (str, 12, "\033[%dC", offset);
-//		DBG ("--- %s ---", str+1);
 		this->print (str);
 	}	else if (offset < 0) {
 		snprintf (str, 12, "\033[%dD", abs(offset));
-//		DBG ("--- %s ---", str+1);
 		this->print (str);
 	}
 }
@@ -240,6 +240,8 @@ void terminal_print_line (microrl_t * this, int offset)
 			nch[0] = ' ';
 		this->print (nch);
 	}
+	this->print ("\033[100D"); //TODO: 100 is magic
+	this->print ("\033[7C");   //TODO: set cursor position after prompt
 //	this->print ("\033[u");
 //	if (offset > 0)
 //		this->print ("\033[C");
@@ -288,14 +290,14 @@ int escape_process (microrl_t * this, char ch)
 			int len = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_UP);
 			if (len) {
 				this->cursor = this->cmdlen = len;
-				terminal_print_line (this, 0);
+				terminal_print_line (this, this->cursor);
 			}
 			return 1;
 		} else if (ch == 'B') {
 			int len = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_DOWN);
 			if (len) {
 				this->cursor = this->cmdlen = len;
-				terminal_print_line (this, 0);
+				terminal_print_line (this, this->cursor);
 			}
 			return 1;
 		} else if (ch == 'C') {
@@ -370,14 +372,13 @@ static void microrl_backspace (microrl_t * this)
 		this->cursor--;
 		this->cmdline [this->cmdlen] = '\0';
 		this->cmdlen--;
-		terminal_print_line (this, (-1)*(this->cmdlen-this->cursor));
+		terminal_print_line (this, this->cursor);
 	}
 }
 
 //*****************************************************************************
 void microrl_insert_char (microrl_t * this, int ch)
 {
-	static char prevch = 'a';
 	int status;
 	static int escape = false;
 //	DBG (" (%c:%d) ", ch, ch);
@@ -446,7 +447,7 @@ void microrl_insert_char (microrl_t * this, int ch)
 			if ((ch == ' ') && (this->cmdlen == 0)) 
 				break;
 			if (microrl_insert_text (this, (char*)&ch, 1))
-				terminal_print_line (this, 0);
+				terminal_print_line (this, this->cursor);
 			break;
 		}
 	}
