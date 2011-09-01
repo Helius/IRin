@@ -14,10 +14,7 @@ BUGS and TODO:
 
 char * prompt_default = _PROMPT_DEFAUTL;
 
-
-#define _HIST_UP 0
-#define _HIST_DOWN 1
-
+#ifdef _USE_HISTORY
 void print_hist (ring_history_t * this)
 {
 	printf ("\n");
@@ -170,6 +167,14 @@ static int hist_restore_line (ring_history_t * this, char * line, int dir)
 	}
 	return 0;
 }
+#endif
+
+
+
+
+
+
+
 
 //*****************************************************************************
 static int split (microrl_t * this)
@@ -225,13 +230,22 @@ static void terminal_set_cursor (microrl_t * this, int offset)
 }
 
 //*****************************************************************************
+static void terminal_reset_cursor (microrl_t * this)
+{
+	char str[16];
+	snprintf (str, 16, "\033[%dD", _COMMAND_LINE_LEN);
+	this->print (str);
+	snprintf (str, 16, "\033[%dC", _PROMPT_LEN);
+	this->print (str);
+}
+
+//*****************************************************************************
 // print cmdline to screen, replace '\0' to wihitespace 
 void terminal_print_line (microrl_t * this, int offset)
 {
-//	this->print ("\033[s");
-	this->print ("\033[100D"); //TODO: 100 is magic
-	this->print ("\033[7C");   //TODO: set cursor position after prompt
-	this->print ("\033[K");
+	// set terminal cursor at begin of line
+	terminal_reset_cursor (this);
+	this->print ("\033[K");    // delete all from begin to end
 	char nch [] = {0,0};
 	int len = this->cmdlen;
 	for (int i = 0; i < len; i++) {
@@ -240,11 +254,8 @@ void terminal_print_line (microrl_t * this, int offset)
 			nch[0] = ' ';
 		this->print (nch);
 	}
-	this->print ("\033[100D"); //TODO: 100 is magic
-	this->print ("\033[7C");   //TODO: set cursor position after prompt
-//	this->print ("\033[u");
-//	if (offset > 0)
-//		this->print ("\033[C");
+	terminal_reset_cursor (this);
+	// set terminal cursor at microrl cursor
 	terminal_set_cursor (this, offset);
 }
 
@@ -253,10 +264,12 @@ void microrl_init (microrl_t * this, void (*print) (char *))
 {
 	memset(this->cmdline, 0, _COMMAND_LINE_LEN);
 	this->cmdline[1] = '\n';
+#ifdef _USE_HISTORY
 	memset(this->ring_hist.ring_buf, 0, _RING_HISTORY_LEN);
 	this->ring_hist.begin = 0;
 	this->ring_hist.end = 0;
 	this->ring_hist.cur = 0;
+#endif
 	this->cmdlen =0;
 	this->cursor = 0;
 	this->execute = NULL;
@@ -287,18 +300,22 @@ int escape_process (microrl_t * this, char ch)
 		seq = _ESC_BRACKET;	
 	} else if (seq == _ESC_BRACKET) {
 		if (ch == 'A') {
+#ifdef _USE_HISTORY
 			int len = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_UP);
 			if (len) {
 				this->cursor = this->cmdlen = len;
 				terminal_print_line (this, this->cursor);
 			}
+#endif
 			return 1;
 		} else if (ch == 'B') {
+#ifdef _USE_HISTORY
 			int len = hist_restore_line (&this->ring_hist, this->cmdline, _HIST_DOWN);
 			if (len) {
 				this->cursor = this->cmdlen = len;
 				terminal_print_line (this, this->cursor);
 			}
+#endif
 			return 1;
 		} else if (ch == 'C') {
 			if (this->cursor < this->cmdlen) {
@@ -396,15 +413,19 @@ void microrl_insert_char (microrl_t * this, int ch)
 					this->print ("ERROR: Max command amount exseed\n");
 				if ((status > 0) && (this->execute != NULL)) {
 					if (this->execute (status, this->tkn_arr)) {
+#ifdef _USE_HISTORY
 						if (this->cmdlen > 0)
 							hist_save_line (&this->ring_hist, this->cmdline, this->cmdlen);
+#endif
 					}
 				}
 				print_prompt (this);
 				this->cmdlen = 0;
 				this->cursor = 0;
 				memset(this->cmdline, 0, _COMMAND_LINE_LEN);
+#ifdef _USE_HISTORY
 				this->ring_hist.cur = 0;
+#endif
 			
 				break;
 			//-----------------------------------------------------

@@ -1,12 +1,7 @@
 #ifndef _MICRORL_H_
 #define _MICRORL_H_
 
-/*********** CONFIG SECTION **************/
-#define _COMMAND_LINE_LEN 16
-#define _COMMAND_TOKEN_NMB 8
-#define _RING_HISTORY_LEN 32
-#define _PROMPT_DEFAUTL "IRin > "
-/********** END CONFIG SECTION ************/
+#include "config.h"
 
 #define true  1
 #define false 0
@@ -47,11 +42,15 @@
 
 #define KEY_DEL 127 /**< Delete (not a real control character...) */
 
+// direction of history navigation
+#define _HIST_UP 0
+#define _HIST_DOWN 1
+// esc seq internal codes
 #define _ESC_BRACKET  1
 #define _ESC_HOME     2
 #define _ESC_END      3
 
-
+#ifdef _USE_HISTORY
 // history struct, contain internal variable
 // history store in static ring buffer for memory saving
 typedef struct {
@@ -60,10 +59,13 @@ typedef struct {
 	int end;
 	int cur;
 } ring_history_t;
+#endif
 
 // microrl struct, contain internal library data
 typedef struct {
+#ifdef _USE_HISTORY
 	ring_history_t ring_hist;          // history object
+#endif
 	char * prompt_str;                 // pointer to prompt string
 	char cmdline [_COMMAND_LINE_LEN];  // cmdline buffer
 	int cmdlen;                        // last position in command line
