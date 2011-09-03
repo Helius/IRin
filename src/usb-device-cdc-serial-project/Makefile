@@ -94,10 +94,12 @@ USB = $(AT91LIB)/usb
 UTILITY = $(AT91LIB)/utility
 PERIPH = $(AT91LIB)/peripherals
 BOARDS = $(AT91LIB)/boards
+MICRORL = ../microrl
 
 VPATH += $(USB)/device/cdc-serial $(USB)/device/core $(USB)/common/core
 VPATH += $(USB)/common/cdc
 VPATH += $(UTILITY)
+VPATH += $(MICRORL)
 VPATH += $(PERIPH)/dbgu $(PERIPH)/aic $(PERIPH)/usart $(PERIPH)/pio $(PERIPH)/pmc
 VPATH += $(PERIPH)/cp15
 VPATH += $(BOARDS)/$(BOARD) $(BOARDS)/$(BOARD)/$(CHIP)
@@ -148,7 +150,7 @@ $(1): $$(ASM_OBJECTS_$(1)) $$(C_OBJECTS_$(1))
 	$(OBJCOPY) -O ihex $(OUTPUT)-$$@.elf $(OUTPUT)-$$@.hex
 	$(SIZE) $$^ $(OUTPUT)-$$@.elf
 
-# helius: i change 148 string for generate iHex file output, original string is here:
+# helius: change line above for generate iHex file output, original string is here:
 #$(OBJCOPY) -O binary $(OUTPUT)-$$@.elf $(OUTPUT)-$$@.bin
 
 $$(C_OBJECTS_$(1)): $(OBJ)/$(1)_%.o: %.c Makefile $(OBJ) $(BIN)
