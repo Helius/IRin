@@ -403,6 +403,77 @@ static void UsbDataReceived(unsigned int unused,
     }
 }
 
+//*****************************************************************************
+// help for microrl library
+void print_help ()
+{
+	cdc_write ("Use TAB key for completion\nCommand:\n\thelp - this message\n\tlist - list all commands in tree\n");
+}
+
+#define _CMD_HELP "help"
+#define _CMD_LIST "list"
+#define _CMD_SETNAME "setmane"
+
+#define _NUM_OF_CMD 3
+char * keyworld [] = {_CMD_HELP,_CMD_LIST,_CMD_SETNAME};
+char ** compl_world [_NUM_OF_CMD + 1];
+
+//*****************************************************************************
+// execute callback for microrl library
+int execute (int argc, const char * const * tkn_arr)
+{
+	int i = 0;
+	while (i < argc) {
+		if (strcmp (tkn_arr[i], _CMD_HELP) == 0) {
+			cdc_write ("microrl library based shell v 1.0\n");
+			print_help ();
+			return 1;
+		} else if (strcmp (tkn_arr[i], _CMD_LIST) == 0) {
+			//TODO: just print saved key and codes
+		} else if (strcmp (tkn_arr[i], _CMD_SETNAME) == 0) {
+			//TODO: save name for last pressed key, if no key - tell user
+		} else {
+			cdc_write ("command: '");
+			cdc_write (tkn_arr[i]);
+			cdc_write ("' Not found.\n");
+		}
+		i++;
+	}
+	return 0;
+}
+
+//*****************************************************************************
+// completion callback for microrl library
+char ** complet (int argc, const char * const * argv)
+{
+	int j = 0;
+	
+	compl_world [0] = NULL;
+
+	// if there is tocken in cmdline
+	if (argc > 0) {
+		// get last entered tocken
+		char * bit = argv [argc-1];
+		// iterate through our available token and match it
+		for (int i = 0; i < _NUM_OF_CMD; i++) {
+			// if tocken is matched (text is part of our token starting from 0 char)
+			if (strstr(keyworld [i], bit) == keyworld [i]) {
+				// add it to completion set
+				compl_world [j++] = keyworld [i];
+			}
+		}
+	// if there is no token in cmdline, just print all available token
+	} else { 
+		for (; j < _NUM_OF_CMD; j++) {
+			compl_world[j] = keyworld [j];
+		}
+	}
+
+	// note! last ptr in array always must be NULL!!!
+	compl_world [j] = NULL;
+	// return set of variants
+	return compl_world;
+}
 //------------------------------------------------------------------------------
 //          Main
 //------------------------------------------------------------------------------
@@ -425,6 +496,10 @@ int main()
 	// init of ir
 	ir_init (pir);
 	microrl_init (prl, cdc_write);
+	// set callback for execute
+	microrl_set_execute_callback (prl, execute);
+	// set callback for completion
+	microrl_set_complite_callback (prl, complet);
 
 	// If they are present, configure IR & Wake-up pins
 	PIO_InitializeInterrupts(0);
