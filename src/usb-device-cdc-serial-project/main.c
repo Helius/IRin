@@ -145,6 +145,7 @@
 //         Headers
 //------------------------------------------------------------------------------
 #include <string.h>
+#include <stdlib.h>
 #include <board.h>
 #include <pio/pio.h>
 #include <pio/pio_it.h>
@@ -158,6 +159,7 @@
 #include <pmc/pmc.h>
 #include "ir.h"
 #include "../microrl/microrl.h"
+#include "AT24.h"
 
 #define true 1
 #define false 0
@@ -407,35 +409,98 @@ static void UsbDataReceived(unsigned int unused,
 // help for microrl library
 void print_help ()
 {
-	cdc_write ("Use TAB key for completion\nCommand:\n\thelp - this message\n\tlist - list all commands in tree\n");
+	cdc_write ("Use TAB key for completion\n\rCommand:\n\r\thelp - this message\n\r\tmem { format | print [ start [ stop ] ] }");
 }
+
+#define _KEY_MAP_SIZE 60
+#define _KEY_REC_SIZE 32
+
+void mem_cmd_usage ()
+{
+	cdc_write ("mem - eeprom memory operations, usage:\n\r\tmem { format | print [ start_index [ end_index ] ] }\n\r");
+}
+
+void mem_print (int start, int stop)
+{
+	char buf [_KEY_REC_SIZE];
+	char nmb [8];
+	for (int i = start; i < stop; i++) {
+		sprintf (nmb, "%2d: ",i);
+		cdc_write (nmb);
+		if (read_eeprom (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE)) {
+			cdc_write ("read faled\n\r");
+		}
+		cdc_write (buf);
+		cdc_write ("\n\r");
+	}
+}
+
+void mem_format (void)
+{
+	char buf [_KEY_REC_SIZE] = {0,};
+	for (int i = 0; i < _KEY_MAP_SIZE; i++) {
+		if (write_eeprom (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE)) {
+			cdc_write ("write failed");
+		}
+	}
+}
+
 
 #define _CMD_HELP "help"
 #define _CMD_LIST "list"
-#define _CMD_SETNAME "setmane"
+#define _CMD_SETNAME "setname"
+#define _CMD_EEPROM "eeprom"
+#define _CMD_READ "read"
+#define _SCMD_FORMAT "format"
+#define _SCMD_PRINT "print"
 
-#define _NUM_OF_CMD 3
-char * keyworld [] = {_CMD_HELP,_CMD_LIST,_CMD_SETNAME};
+#define _NUM_OF_CMD 5
+char * keyworld [] = {_CMD_HELP,_CMD_LIST,_CMD_SETNAME,_CMD_EEPROM,_CMD_READ};
+char * mem_sub_cmd [] = {_SCMD_PRINT, _SCMD_FORMAT};
 char ** compl_world [_NUM_OF_CMD + 1];
 
 //*****************************************************************************
 // execute callback for microrl library
-int execute (int argc, const char * const * tkn_arr)
+int execute (int argc, const char * const * argv)
 {
 	int i = 0;
 	while (i < argc) {
-		if (strcmp (tkn_arr[i], _CMD_HELP) == 0) {
-			cdc_write ("microrl library based shell v 1.0\n");
+		if (strcmp (argv[i], _CMD_HELP) == 0) {
+			cdc_write ("microrl library based IRin shell v 1.0\n\r");
 			print_help ();
 			return 1;
-		} else if (strcmp (tkn_arr[i], _CMD_LIST) == 0) {
+		} else if (strcmp (argv[i], _CMD_EEPROM) == 0) {
+			if (!(++i < argc)) {
+				mem_cmd_usage ();
+				return 0;
+			}
+			if (strcmp (argv[i], "print") == 0) {
+				int start_ind = 0;
+				int end_ind = _KEY_MAP_SIZE;
+				if (++i < argc)
+					start_ind = atoi (argv[i]);
+				if (++i < argc)
+					end_ind = atoi (argv[i]);
+				mem_print (start_ind, end_ind);
+				return 1;
+			} else if (strcmp (argv[i], "format") == 0) {
+				mem_format ();
+				return 1;
+			} else {
+				mem_cmd_usage ();
+				return 0;
+			}
+
+		} else if (strcmp (argv[i], _CMD_LIST) == 0) {
 			//TODO: just print saved key and codes
-		} else if (strcmp (tkn_arr[i], _CMD_SETNAME) == 0) {
-			//TODO: save name for last pressed key, if no key - tell user
+			cdc_write ("item 0\n\r");
+			cdc_write ("item 1\n\r");
+			cdc_write ("item 2\n\r");
+		} else if (strcmp (argv[i], _CMD_SETNAME) == 0) {
 		} else {
 			cdc_write ("command: '");
-			cdc_write (tkn_arr[i]);
-			cdc_write ("' Not found.\n");
+			cdc_write (argv[i]);
+			cdc_write ("' Not found.\n\r");
 		}
 		i++;
 	}
@@ -451,9 +516,9 @@ char ** complet (int argc, const char * const * argv)
 	compl_world [0] = NULL;
 
 	// if there is tocken in cmdline
-	if (argc > 0) {
+	if (argc == 1) {
 		// get last entered tocken
-		char * bit = argv [argc-1];
+		const char * bit = argv [argc-1];
 		// iterate through our available token and match it
 		for (int i = 0; i < _NUM_OF_CMD; i++) {
 			// if tocken is matched (text is part of our token starting from 0 char)
@@ -462,8 +527,18 @@ char ** complet (int argc, const char * const * argv)
 				compl_world [j++] = keyworld [i];
 			}
 		}
-	// if there is no token in cmdline, just print all available token
-	} else { 
+	} else if ((argc > 1) && (strcmp (argv[0], _CMD_EEPROM)==0)) {
+		const char * bit = argv [argc-1];
+		for (int i = 0; i < 2; i++) {
+			// if tocken is matched (text is part of our token starting from 0 char)
+			if (strstr(mem_sub_cmd [i], bit) == mem_sub_cmd [i]) {
+				// add it to completion set
+				compl_world [j++] = mem_sub_cmd [i];
+			}
+		}
+	
+	} else { // if there is no token in cmdline, just print all available token
+	
 		for (; j < _NUM_OF_CMD; j++) {
 			compl_world[j] = keyworld [j];
 		}
@@ -493,8 +568,10 @@ int main()
 	printf ("-- %s\n\r", BOARD_NAME);
 	printf ("-- Compiled: %s %s --\n\r\n\r", __DATE__, __TIME__);
 
+
 	// init of ir
 	ir_init (pir);
+	// init microrl library
 	microrl_init (prl, cdc_write);
 	// set callback for execute
 	microrl_set_execute_callback (prl, execute);

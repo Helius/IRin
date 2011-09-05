@@ -1,0 +1,13 @@
+#!/usr/bin/perl
+
+my $data = `arm-none-eabi-objdump obj/flash_microrl.o -h | grep .text`;
+my @line = split ('\n', $data);
+my $summ;
+foreach (@line) {
+	(my $nmb, my $name, my $size) = split (' ', $_);
+	my $size_dec = hex ($size);
+	print $size_dec, "\t", $name, "\n";
+	$summ = $summ + $size_dec;
+}
+print "--------------------------------\n";
+print "summ: $summ bytes\n";
