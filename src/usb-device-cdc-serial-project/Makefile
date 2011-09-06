@@ -94,10 +94,12 @@ USB = $(AT91LIB)/usb
 UTILITY = $(AT91LIB)/utility
 PERIPH = $(AT91LIB)/peripherals
 BOARDS = $(AT91LIB)/boards
+MICRORL = ../microrl
 
 VPATH += $(USB)/device/cdc-serial $(USB)/device/core $(USB)/common/core
 VPATH += $(USB)/common/cdc
 VPATH += $(UTILITY)
+VPATH += $(MICRORL)
 VPATH += $(PERIPH)/dbgu $(PERIPH)/aic $(PERIPH)/usart $(PERIPH)/pio $(PERIPH)/pmc
 VPATH += $(PERIPH)/cp15
 VPATH += $(BOARDS)/$(BOARD) $(BOARDS)/$(BOARD)/$(CHIP)
@@ -121,7 +123,7 @@ C_OBJECTS += led.o string.o stdio.o
 C_OBJECTS += aic.o dbgu.o usart.o pio.o pio_it.o pmc.o cp15.o
 C_OBJECTS += board_memories.o board_lowlevel.o
 #add by Helius
-C_OBJECTS += ir.o microrl.o
+C_OBJECTS += ir.o microrl.o AT24.o i2csw.o
 
 # Objects built from Assembly source files
 ASM_OBJECTS = board_cstartup.o
@@ -148,7 +150,7 @@ $(1): $$(ASM_OBJECTS_$(1)) $$(C_OBJECTS_$(1))
 	$(OBJCOPY) -O ihex $(OUTPUT)-$$@.elf $(OUTPUT)-$$@.hex
 	$(SIZE) $$^ $(OUTPUT)-$$@.elf
 
-# helius: i change 148 string for generate iHex file output, original string is here:
+# helius: change line above for generate iHex file output, original string is here:
 #$(OBJCOPY) -O binary $(OUTPUT)-$$@.elf $(OUTPUT)-$$@.bin
 
 $$(C_OBJECTS_$(1)): $(OBJ)/$(1)_%.o: %.c Makefile $(OBJ) $(BIN)
