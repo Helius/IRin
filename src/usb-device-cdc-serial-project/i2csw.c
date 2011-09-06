@@ -1,23 +1,25 @@
-/// функции программного i2c
+// software i2c library for read and write to bus
+
 #include "i2csw.h"
 
-void i2c_init(void)       // инициализация порта I2c
+//*****************************************************************************
+void i2c_init (void)
 {
     SDA_IN;
     SCL_IN;
     SDA_CLR;
     SCL_CLR;
 }
-
-static void i2c_start(void )     // стартовая комбинация
+//*****************************************************************************
+static void i2c_start (void)
 {				
     SDA_OUT;
     i2c_delay2();
     SCL_OUT;
     i2c_delay2();
 }
-
-static void i2c_rep_start(void ) // комбинация повторного старта
+//*****************************************************************************
+static void i2c_rep_start (void)
 {
     SCL_OUT;
     SDA_IN;
@@ -25,7 +27,8 @@ static void i2c_rep_start(void ) // комбинация повторного старта
     SCL_IN;
     i2c_delay();           
 }
-static void i2c_stop(void )      // стоповая комбинация
+//*****************************************************************************
+static void i2c_stop (void)
 {
     SCL_OUT;
     SDA_OUT;
@@ -35,48 +38,47 @@ static void i2c_stop(void )      // стоповая комбинация
     SDA_IN;
     i2c_delay2();    
 }
-
-static int i2c_putbyte (int data)  //  вывод байта
+//*****************************************************************************
+static int i2c_putbyte (int data)
 {
-    int   count=8, ret=0;
-  
-    while ( count-- ) {
-			SCL_OUT;
-			i2c_delay();
-			if ( data&0x80 )
-				SDA_IN;
-			else                
-				SDA_OUT;
-			data<<=1;
-			i2c_delay();
-			SCL_IN;	
-			i2c_delay();
-    }
-    
-    SCL_OUT;
-    i2c_delay();
-    SDA_IN;
-    i2c_delay();
-		SCL_IN;
-    
-		while ( !(SCL_IS) );
-		if ( SDA_IS ) ret=1;
-			
-    i2c_delay2();
-    return ret;
+	int count = 8, ret = 0;
+	while (count--) {
+		SCL_OUT;
+		i2c_delay();
+		if ( data&0x80 )
+			SDA_IN;
+		else                
+			SDA_OUT;
+		data<<=1;
+		i2c_delay();
+		SCL_IN;	
+		i2c_delay();
+	}
+	SCL_OUT;
+	i2c_delay();
+	SDA_IN;
+	i2c_delay();
+	SCL_IN;
+
+	while (!(SCL_IS));
+	if (SDA_IS) 
+		ret=1;
+	i2c_delay2();
+	return ret;
 }
 
-static int i2c_getbyte (int ack)   // ввод байта
+//*****************************************************************************
+static int i2c_getbyte (int ack)
 {
 	int count=8, data;
 
-	while ( count-- ) {
-		data<<=1;
+	while (count--) {
+		data <<= 1;
 		SCL_OUT;
 		i2c_delay2();
 		SCL_IN;
 		i2c_delay();
-		if ( SDA_IS ) data |= 1;	
+		if (SDA_IS) data |= 1;	
 	}
 
 	SCL_OUT;
@@ -88,17 +90,18 @@ static int i2c_getbyte (int ack)   // ввод байта
 	
 	i2c_delay();
 	SCL_IN;
-	while ( !(SCL_IS) );
+	while (!(SCL_IS));
 	i2c_delay();
 	SCL_OUT;
 	i2c_delay2();
-
 	SDA_IN;
 	i2c_delay2();
 	return data;
 }
 
-int i2c_read(int addr_hi, int addr_lo)   // прочитать байт по заданному адресу
+//*****************************************************************************
+// read 1 byte with adress
+int i2c_read_byte (int addr_hi, int addr_lo)
 {
 	i2c_start();	
 	i2c_putbyte(addr_hi);
@@ -113,7 +116,22 @@ int i2c_read(int addr_hi, int addr_lo)   // прочитать байт по заданному адресу
 	return data;
 }
 
-int i2c_read_string(int addr_hi, int addr_lo, char *str, int len)  // прочитать строку по заданному адресу
+//*****************************************************************************
+// write 1 byte to adr, return 0 if bus response and 1 if not respons
+int i2c_write_byte(int addr_hi, int addr_lo, int data)
+{
+	int res = 0;
+	i2c_start();	
+	res |= i2c_putbyte(addr_hi);
+	res |= i2c_putbyte(addr_lo);
+	res |= i2c_putbyte(data);
+	i2c_stop();
+	return res;
+}
+
+//*****************************************************************************
+// read array of byte to *str, return 0 if bus response and 1 if not respons
+int i2c_read_string (int addr_hi, int addr_lo, char *str, int len)
 {
 	i2c_start();
 	if(i2c_putbyte(addr_hi)) {
@@ -136,16 +154,9 @@ int i2c_read_string(int addr_hi, int addr_lo, char *str, int len)  // прочитать 
     return 0;
 }
 
-void i2c_write(int addr_hi, int addr_lo, int data) // записать байт по заданному адресу
-{
-	i2c_start();	
-	i2c_putbyte(addr_hi);
-	i2c_putbyte(addr_lo);
-	i2c_putbyte(data);
-	i2c_stop();
-}
-
-int i2c_write_string(int addr_hi, int addr_lo, char *str, int len)   // записать строку по заданному адресу
+//*****************************************************************************
+// write array *str, return 0 if bus respons and 1 if not respons
+int i2c_write_string(int addr_hi, int addr_lo, char *str, int len)
 {
 	i2c_start();	
 	if(i2c_putbyte(addr_hi)) {
@@ -161,3 +172,4 @@ int i2c_write_string(int addr_hi, int addr_lo, char *str, int len)   // записать
 	i2c_stop();
   return 0;
 }
+

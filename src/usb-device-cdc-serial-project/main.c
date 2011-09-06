@@ -159,7 +159,7 @@
 #include <pmc/pmc.h>
 #include "ir.h"
 #include "../microrl/microrl.h"
-#include "AT24.h"
+#include "at24.h"
 
 #define true 1
 #define false 0

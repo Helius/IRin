@@ -3,14 +3,19 @@
 
 #include "lib_AT91SAM7S64.h"
 
-//#ifdef AT91SAM7S64
-    #define __delay_cycles(x)   for ( int __jj=0; __jj<x; __jj++ ) {    \
-            volatile int __tmp=0;                                       \
-        }                                                      
-//#endif
-
+//******************************** set up **************************************
+// define data and clock line
 #define SCL_LINE    AT91C_PIO_PA8
 #define SDA_LINE    AT91C_PIO_PA7
+
+// clock for delay
+#define F_MHZ 60
+
+#define I2C_READ_BIT  1
+
+#define __delay_cycles(x)   for ( int __jj=0; __jj<x; __jj++ ) {\
+	volatile int __tmp=0;                                         \
+}                                                      
 
 #define SCL_SET     AT91F_PIO_SetOutput   (AT91C_BASE_PIOA, SCL_LINE) 
 #define SCL_CLR     AT91F_PIO_ClearOutput (AT91C_BASE_PIOA, SCL_LINE)
@@ -23,17 +28,28 @@
 #define SDA_IN      AT91F_PIO_CfgInput    (AT91C_BASE_PIOA, SDA_LINE)
 #define SDA_IS      AT91F_PIO_IsInputSet  (AT91C_BASE_PIOA, SDA_LINE)
 
-void i2c_init(void); ///< инициализация
-int i2c_read_string(int, int, char *, int); ///< читать строку (массив)
-int i2c_write_string(int, int, char *, int); ///< писать строку (массив)
-
-#define I2C_PAGE_LEN 16
-#define I2C_READ_BIT  1
-
-#define F_MHZ 60
-
 #define i2c_delay() __delay_cycles(1*F_MHZ)
 #define i2c_delay2() __delay_cycles(2*F_MHZ)
 #define i2c_delay5() __delay_cycles(3*F_MHZ)   
+
+//*************************** public function *********************************
+
+// init line
+void i2c_init(void);
+
+// read one byte from bus
+int i2c_read_byte (int, int);
+
+// write one byte to bus
+int i2c_write_byte (int, int);
+
+// read array from bus
+int i2c_read_string(int, int, char *, int);
+
+// write array to bus
+int i2c_write_string(int, int, char *, int);
+
+
+
 
 #endif
