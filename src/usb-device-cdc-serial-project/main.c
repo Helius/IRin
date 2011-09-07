@@ -160,6 +160,7 @@
 #include "ir.h"
 #include "../microrl/microrl.h"
 #include "at24.h"
+#include "i2csw.h"
 
 #define true 1
 #define false 0
@@ -197,16 +198,9 @@ unsigned char USBState = STATE_IDLE;
 
 /// Number of byte USB recieve
 static int usb_recieve;
-/// List of pins that must be configured for use by the application.
-//static const Pin pins[] = {PIN_USART0_TXD, PIN_USART0_RXD};
+static int key_code = 0;
+static int last_key_code = 0;
 
-/// Double-buffer for storing incoming USART data.
-//static unsigned char usartBuffers[2][DATABUFFERSIZE];
-
-/// Current USART buffer index.
-//static unsigned char usartCurrentBuffer = 0;
-
-/// Buffer for storing incoming USB data.
 static unsigned char usbBuffer[DATABUFFERSIZE];
 
 
@@ -406,6 +400,12 @@ static void UsbDataReceived(unsigned int unused,
 }
 
 //*****************************************************************************
+void key2str (char * key_str, int key_code)
+{
+	sprintf (key_str, "NEC %X", key_code);
+}
+
+//*****************************************************************************
 // help for microrl library
 void print_help ()
 {
@@ -415,48 +415,95 @@ void print_help ()
 #define _KEY_MAP_SIZE 60
 #define _KEY_REC_SIZE 32
 
-void mem_cmd_usage ()
+//*****************************************************************************
+void eeprom_cmd_usage ()
 {
-	cdc_write ("mem - eeprom memory operations, usage:\n\r\tmem { format | print [ start_index [ end_index ] ] }\n\r");
+	cdc_write ("eeprom - eeprom memory operations, usage:\n\r\teeprom { format | print [ start_index [ end_index ] ] }\n\r");
 }
 
-void mem_print (int start, int stop)
+//*****************************************************************************
+void eeprom_print (int start, int stop)
 {
 	char buf [_KEY_REC_SIZE];
-	char nmb [8];
+	char nmb [16];
 	for (int i = start; i < stop; i++) {
-		sprintf (nmb, "%2d: ",i);
+		sprintf (nmb, "page %2d: ", i);
 		cdc_write (nmb);
-		if (read_eeprom (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE)) {
-			cdc_write ("read faled\n\r");
-		}
+		at24_read_16_byte (i, buf);
 		cdc_write (buf);
 		cdc_write ("\n\r");
 	}
 }
 
-void mem_format (void)
+//*****************************************************************************
+void eeprom_format (void)
 {
-	char buf [_KEY_REC_SIZE] = {0,};
-	for (int i = 0; i < _KEY_MAP_SIZE; i++) {
-		if (write_eeprom (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE)) {
+	char buf [_KEY_REC_SIZE] = {0x1C};
+	for (int i = 0; i < 1; i++) {
+		if (at24_write_16_byte (i, buf)) {
 			cdc_write ("write failed");
 		}
 	}
 }
 
+//*****************************************************************************
+int eeprom_find_name (char * key_str, char * name)
+{
+	char buf [_KEY_REC_SIZE] = {0,};
+	for (int i = 0; i < _KEY_MAP_SIZE; i++) {
+		if (read_eeprom (i*_KEY_MAP_SIZE, buf, _KEY_REC_SIZE)) 
+			cdc_write ("read failed\n\r");
+		if (strncmp (key_str, buf, strlen (key_str)) == 0) {
+			strcpy (name, &buf[strlen (key_str)]);
+			return 1;
+		}
+	}
+	return 0;
+}
 
-#define _CMD_HELP "help"
-#define _CMD_LIST "list"
+//*****************************************************************************
+int eeprom_set_name (int key_code, char * name)
+{
+	if (key_code == 0) {
+		cdc_write ("Key not set! Please, press key on IR\n\r");
+		return 0;
+	}
+	cdc_write ("saving name: '");
+	cdc_write (name);
+	cdc_write ("' for '");
+	char key_str [_KEY_REC_SIZE] = {0,};
+	key2str (key_str, key_code);
+	cdc_write (key_str);
+	cdc_write ("'\n\r");
+	if (strlen (name) + strlen(key_str) + 1 > _KEY_REC_SIZE) {
+		cdc_write ("Name too long\n\r");
+		return 0;
+	} else {
+		strcat (key_str, " ");
+		strcat (key_str, name);
+		cdc_write ("will write: ");
+		cdc_write (key_str);
+		cdc_write ("\n\r");
+//		write_eeprom (3*_KEY_REC_SIZE, "12345123451234512345132451234344", 32);
+		for (int i = 0; i < _KEY_REC_SIZE; i++) {
+//			i2c_write_byte (0xA0, 2*_KEY_REC_SIZE + i, key_str[i]);
+		}
+		key_code = 0;
+	}
+	return 1;
+}
+
+#define _CMD_HELP    "help"
+#define _CMD_LIST    "list"
 #define _CMD_SETNAME "setname"
-#define _CMD_EEPROM "eeprom"
-#define _CMD_READ "read"
+#define _CMD_EEPROM  "eeprom"
 #define _SCMD_FORMAT "format"
-#define _SCMD_PRINT "print"
+#define _SCMD_PRINT  "print"
+#define _SCMD_SPEED  "speed"
 
 #define _NUM_OF_CMD 5
-char * keyworld [] = {_CMD_HELP,_CMD_LIST,_CMD_SETNAME,_CMD_EEPROM,_CMD_READ};
-char * mem_sub_cmd [] = {_SCMD_PRINT, _SCMD_FORMAT};
+char * keyworld [] = {_CMD_HELP,_CMD_LIST,_CMD_SETNAME,_CMD_EEPROM};
+char * mem_sub_cmd [] = {_SCMD_PRINT, _SCMD_FORMAT,_SCMD_SPEED};
 char ** compl_world [_NUM_OF_CMD + 1];
 
 //*****************************************************************************
@@ -471,7 +518,7 @@ int execute (int argc, const char * const * argv)
 			return 1;
 		} else if (strcmp (argv[i], _CMD_EEPROM) == 0) {
 			if (!(++i < argc)) {
-				mem_cmd_usage ();
+				eeprom_cmd_usage ();
 				return 0;
 			}
 			if (strcmp (argv[i], "print") == 0) {
@@ -481,22 +528,41 @@ int execute (int argc, const char * const * argv)
 					start_ind = atoi (argv[i]);
 				if (++i < argc)
 					end_ind = atoi (argv[i]);
-				mem_print (start_ind, end_ind);
+				eeprom_print (start_ind, end_ind);
 				return 1;
+			} else if (strcmp (argv[i], "speed") == 0) {
+				if (++i < argc) {
+					i2c_set_delay (atoi (argv[i]));
+				} else {
+					char str [8];
+					sprintf (str, "%d\n\r", i2c_get_delay());
+					cdc_write (str);
+				}
 			} else if (strcmp (argv[i], "format") == 0) {
-				mem_format ();
+				eeprom_format ();
 				return 1;
 			} else {
-				mem_cmd_usage ();
+				eeprom_cmd_usage ();
 				return 0;
 			}
 
 		} else if (strcmp (argv[i], _CMD_LIST) == 0) {
-			//TODO: just print saved key and codes
-			cdc_write ("item 0\n\r");
-			cdc_write ("item 1\n\r");
-			cdc_write ("item 2\n\r");
+			char buf [16];
+			strcpy (buf,"fucking eeprom!");
+			at24_write_16_byte (10, buf);
+			i2c_delay (6);
+			memset (buf, 0, 16);
+			at24_read_16_byte (10, buf);
+			cdc_write (buf);
+			i2c_delay (200);
 		} else if (strcmp (argv[i], _CMD_SETNAME) == 0) {
+			if (++i < argc) {
+				eeprom_set_name (last_key_code, argv[i]);
+				last_key_code = 0;
+			} else {
+				cdc_write ("command setname needs argument - ascii name\n\r");
+				return 0;
+			}
 		} else {
 			cdc_write ("command: '");
 			cdc_write (argv[i]);
@@ -568,7 +634,8 @@ int main()
 	printf ("-- %s\n\r", BOARD_NAME);
 	printf ("-- Compiled: %s %s --\n\r\n\r", __DATE__, __TIME__);
 
-
+	// init eeprom interface
+	i2c_init ();
 	// init of ir
 	ir_init (pir);
 	// init microrl library
@@ -656,11 +723,17 @@ int main()
 				USBState = STATE_IDLE;
 		}
 		// check new IR code
-		int key_code = ir_code (pir);
+		key_code = ir_code (pir);
 		if (key_code) {
-			char key_str [32] = {0};
-			sprintf (key_str, "NEC %X\n\r", key_code);
-			cdc_write (key_str);
+			last_key_code = key_code;
+			char key_str [32] = {0,};
+			char key_name [32] = {0,};
+			key2str (key_str, key_code);
+			if (eeprom_find_name (key_str, key_name))
+				cdc_write (key_name);
+			else
+				cdc_write (key_str);
+			cdc_write ("\n\r");
 		}
 
 		if (USBD_GetState() == USBD_STATE_CONFIGURED) {

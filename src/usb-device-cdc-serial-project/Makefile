@@ -123,7 +123,7 @@ C_OBJECTS += led.o string.o stdio.o
 C_OBJECTS += aic.o dbgu.o usart.o pio.o pio_it.o pmc.o cp15.o
 C_OBJECTS += board_memories.o board_lowlevel.o
 #add by Helius
-C_OBJECTS += ir.o microrl.o AT24.o i2csw.o
+C_OBJECTS += ir.o microrl.o at24.o i2csw.o
 
 # Objects built from Assembly source files
 ASM_OBJECTS = board_cstartup.o
