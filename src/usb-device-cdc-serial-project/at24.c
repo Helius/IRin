@@ -1,39 +1,44 @@
-/// работа с EEPROM AT24xx на i2c интерфейсе
-/**\file
-функции для чтения и записи в EEPROM AT24xx на i2c шине
-*/
 #include "i2csw.h"
 #include "at24.h"
 
-#define I2C_PAGE_LEN 16
+// need to add support other at24xx (they have different byte addressing mode)
+
+/*
+NOTE!!!
+AT24C16A using i2c address byte A0 A1 A2 lower bit as P0 P1 P2 - high part of page address, with next after i2c address it is 11 bit (2^11 = 2048 byte)
+*/
 
 //*****************************************************************************
-// пишем строку по адресу в еепром, возвращаем 1 если что не так
-int write_eeprom (int adr, char *str, int len)
+int at24_write_page (int page_adr, char * data, int len)
 { 
-  int count = 0;
-  int addr_lo = adr ;//младший байт адреса
-  int addr_hi = 0xA0;
-
-//  while (i2c_write_string(addr_hi, addr_lo, str, len) && (count++ < 8));
-  
-  if(count == 8) 
-		return 1;
-  else 
-		return 0;
+	int res = 0;
+	i2c_start ();
+	// at24c16a use A0 A1 A2 line for addresing memory too
+	res |= i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
+	if (res)
+		return res;
+	res |= i2c_putbyte (page_adr);
+	for (int i = 0; i < len; i++)
+		res |= i2c_putbyte (data[i]);
+	i2c_stop ();
+	return res;
+	
 }
 
 //*****************************************************************************
-// читаем строку по адресу из еепром, возвращаем 1 если что не так
-int read_eeprom (int adr, char *str, int len)
+int at24_read_page (int page_adr, char * data, int len)
 {
-	int count = 0;
-	int addr_lo = adr;//младший байт адреса
-	int addr_hi = 0xA0;
-
-//	while(i2c_read_string(addr_hi, addr_lo, str, len) && (count++ < 8));
-	if(count == 8) 
-		return 1;
-	else 
-		return 0;   
+	int res = 0;
+	i2c_start ();
+	res |= i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
+	if (res) 
+		return res;
+	res |= i2c_putbyte (page_adr);
+	i2c_start ();
+	res |= i2c_putbyte (EEPROM_ADR + EEPROM_RW_BIT);
+	for (int i = 0; i < len-1; i++)
+		data[i] = i2c_getbyte (1);
+	data[len-1] = i2c_getbyte (0);
+	i2c_stop ();
+	return res;
 }

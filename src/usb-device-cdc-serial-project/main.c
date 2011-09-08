@@ -159,8 +159,8 @@
 #include <pmc/pmc.h>
 #include "ir.h"
 #include "../microrl/microrl.h"
-#include "at24.h"
 #include "i2csw.h"
+#include "at24.h"
 
 #define true 1
 #define false 0
@@ -412,47 +412,50 @@ void print_help ()
 	cdc_write ("Use TAB key for completion\n\rCommand:\n\r\thelp - this message\n\r\tmem { format | print [ start [ stop ] ] }");
 }
 
-#define _KEY_MAP_SIZE 60
-#define _KEY_REC_SIZE 32
+#define _KEY_MAP_SIZE 8
+#define _KEY_REC_SIZE 16
 
 //*****************************************************************************
-void eeprom_cmd_usage ()
+void memory_cmd_usage ()
 {
 	cdc_write ("eeprom - eeprom memory operations, usage:\n\r\teeprom { format | print [ start_index [ end_index ] ] }\n\r");
 }
 
 //*****************************************************************************
-void eeprom_print (int start, int stop)
+void memory_print (int start, int stop)
 {
-	char buf [_KEY_REC_SIZE];
+	char buf [_KEY_REC_SIZE+1];
 	char nmb [16];
 	for (int i = start; i < stop; i++) {
 		sprintf (nmb, "page %2d: ", i);
 		cdc_write (nmb);
-		at24_read_16_byte (i, buf);
+		if (at24_read_page (i*16, buf, _KEY_REC_SIZE))
+			cdc_write ("eeprom read failed\n\r");
+		buf[16]=0;
 		cdc_write (buf);
 		cdc_write ("\n\r");
 	}
 }
 
 //*****************************************************************************
-void eeprom_format (void)
+void memory_format (void)
 {
-	char buf [_KEY_REC_SIZE] = {0x1C};
-	for (int i = 0; i < 1; i++) {
-		if (at24_write_16_byte (i, buf)) {
+	char buf [_KEY_REC_SIZE]={0};
+	strncpy (buf, "0123456789abcdef", 16);
+	for (int i = 0; i < _KEY_MAP_SIZE; i++) {
+		if (at24_write_page (i, buf, _KEY_REC_SIZE-10)) {
 			cdc_write ("write failed");
 		}
 	}
 }
 
 //*****************************************************************************
-int eeprom_find_name (char * key_str, char * name)
+int memory_find_name (char * key_str, char * name)
 {
 	char buf [_KEY_REC_SIZE] = {0,};
 	for (int i = 0; i < _KEY_MAP_SIZE; i++) {
-		if (read_eeprom (i*_KEY_MAP_SIZE, buf, _KEY_REC_SIZE)) 
-			cdc_write ("read failed\n\r");
+//		if (read_eeprom (i*_KEY_MAP_SIZE, buf, _KEY_REC_SIZE)) 
+//			cdc_write ("read failed\n\r");
 		if (strncmp (key_str, buf, strlen (key_str)) == 0) {
 			strcpy (name, &buf[strlen (key_str)]);
 			return 1;
@@ -494,7 +497,8 @@ int eeprom_set_name (int key_code, char * name)
 }
 
 #define _CMD_HELP    "help"
-#define _CMD_LIST    "list"
+#define _CMD_READ    "read"
+#define _CMD_WRITE   "write"
 #define _CMD_SETNAME "setname"
 #define _CMD_EEPROM  "eeprom"
 #define _SCMD_FORMAT "format"
@@ -502,7 +506,7 @@ int eeprom_set_name (int key_code, char * name)
 #define _SCMD_SPEED  "speed"
 
 #define _NUM_OF_CMD 5
-char * keyworld [] = {_CMD_HELP,_CMD_LIST,_CMD_SETNAME,_CMD_EEPROM};
+char * keyworld [] = {_CMD_HELP,_CMD_READ,_CMD_WRITE,_CMD_SETNAME,_CMD_EEPROM};
 char * mem_sub_cmd [] = {_SCMD_PRINT, _SCMD_FORMAT,_SCMD_SPEED};
 char ** compl_world [_NUM_OF_CMD + 1];
 
@@ -518,7 +522,7 @@ int execute (int argc, const char * const * argv)
 			return 1;
 		} else if (strcmp (argv[i], _CMD_EEPROM) == 0) {
 			if (!(++i < argc)) {
-				eeprom_cmd_usage ();
+				memory_cmd_usage ();
 				return 0;
 			}
 			if (strcmp (argv[i], "print") == 0) {
@@ -528,7 +532,7 @@ int execute (int argc, const char * const * argv)
 					start_ind = atoi (argv[i]);
 				if (++i < argc)
 					end_ind = atoi (argv[i]);
-				eeprom_print (start_ind, end_ind);
+				memory_print (start_ind, end_ind);
 				return 1;
 			} else if (strcmp (argv[i], "speed") == 0) {
 				if (++i < argc) {
@@ -539,22 +543,31 @@ int execute (int argc, const char * const * argv)
 					cdc_write (str);
 				}
 			} else if (strcmp (argv[i], "format") == 0) {
-				eeprom_format ();
+				memory_format ();
 				return 1;
 			} else {
-				eeprom_cmd_usage ();
+				memory_cmd_usage ();
 				return 0;
 			}
 
-		} else if (strcmp (argv[i], _CMD_LIST) == 0) {
-			char buf [16];
-			strcpy (buf,"fucking eeprom!");
-			at24_write_16_byte (10, buf);
-			i2c_delay (6);
-			memset (buf, 0, 16);
-			at24_read_16_byte (10, buf);
+		} else if (strcmp (argv[i], _CMD_WRITE) == 0) {
+			int start = atoi (argv[++i]);
+				if (at24_write_page (start, argv[++i], strlen(argv[i]))) {
+					cdc_write ("write failed");
+				}
+		} else if (strcmp (argv[i], _CMD_READ) == 0) {
+			char buf [128];
+			memset (buf, 0, 128);
+			int start = atoi (argv [++i]);
+			int len = atoi (argv[++i]);
+			if (at24_read_page (start, buf, len))
+				cdc_write ("eeprom read failed\n\r");
+			for (int j = 0; j < len; j++) {
+				if (buf[j] == 0)
+					buf[j] = '.';
+			}	
 			cdc_write (buf);
-			i2c_delay (200);
+			cdc_write ("\n\r");
 		} else if (strcmp (argv[i], _CMD_SETNAME) == 0) {
 			if (++i < argc) {
 				eeprom_set_name (last_key_code, argv[i]);
@@ -729,7 +742,7 @@ int main()
 			char key_str [32] = {0,};
 			char key_name [32] = {0,};
 			key2str (key_str, key_code);
-			if (eeprom_find_name (key_str, key_name))
+			if (memory_find_name (key_str, key_name))
 				cdc_write (key_name);
 			else
 				cdc_write (key_str);
