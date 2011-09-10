@@ -402,7 +402,7 @@ static void UsbDataReceived(unsigned int unused,
 //*****************************************************************************
 void key2str (char * key_str, int key_code)
 {
-	sprintf (key_str, "NEC %X", key_code);
+	sprintf (key_str, "NEC_%X", key_code);
 }
 
 //*****************************************************************************
@@ -412,8 +412,9 @@ void print_help ()
 	cdc_write ("Use TAB key for completion\n\rCommand:\n\r\thelp - this message\n\r\tmem { format | print [ start [ stop ] ] }");
 }
 
-#define _KEY_MAP_SIZE 60
-#define _KEY_REC_SIZE 32
+#define _KEY_MAP_SIZE    60
+#define _KEY_REC_SIZE    32
+#define _KEY_IND_ADR     (AT24_PAGE_LEN*AT24_PAGE_NMB-8)
 
 //*****************************************************************************
 void memory_cmd_usage ()
@@ -427,11 +428,11 @@ void memory_print (int start, int stop)
 	char buf [_KEY_REC_SIZE+1];
 	char nmb [16];
 	for (int i = start; i < stop; i++) {
-		sprintf (nmb, "page %2d: ", i);
+		sprintf (nmb, "key %2d: ", i);
 		cdc_write (nmb);
-		if (at24_read (i*16, buf, _KEY_REC_SIZE))
+		if (at24_read (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE))
 			cdc_write ("eeprom read failed\n\r");
-		buf[16]=0;
+		buf[_KEY_REC_SIZE]=0;
 		cdc_write (buf);
 		cdc_write ("\n\r");
 	}
@@ -440,24 +441,28 @@ void memory_print (int start, int stop)
 //*****************************************************************************
 void memory_format (void)
 {
-	char buf [AT24_PAGE_LEN];
-	memset (buf, 0, AT24_PAGE_LEN);
-	for (int i = 0; i < AT24_PAGE_NMB; i++) {
-		if (at24_write (i*AT24_PAGE_LEN, buf, AT24_PAGE_LEN)) {
+	char buf [_KEY_REC_SIZE];
+	memset (buf, 0, _KEY_REC_SIZE);
+	for (int i = 0; i <  _KEY_MAP_SIZE; i++) {
+		if (at24_write (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE)) {
 			cdc_write ("write failed");
 		}
 	}
+	char key_ind=0;
+	at24_write (_KEY_IND_ADR, &key_ind, 1);
 }
 
 //*****************************************************************************
 int memory_find_name (char * key_str, char * name)
 {
-	char buf [_KEY_REC_SIZE] = {0,};
+	char buf [_KEY_REC_SIZE];
+	
 	for (int i = 0; i < _KEY_MAP_SIZE; i++) {
-//		if (read_eeprom (i*_KEY_MAP_SIZE, buf, _KEY_REC_SIZE)) 
-//			cdc_write ("read failed\n\r");
+		memset (buf, 0, _KEY_REC_SIZE);
+		if (at24_read (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE))
+			cdc_write ("read failed\n\r");
 		if (strncmp (key_str, buf, strlen (key_str)) == 0) {
-			strcpy (name, &buf[strlen (key_str)]);
+			strcpy (name, &buf[strlen (key_str)+1]);
 			return 1;
 		}
 	}
@@ -471,10 +476,13 @@ int memory_set_name (int key_code, char * name)
 		cdc_write ("Key not set! Please, press key on IR\n\r");
 		return 0;
 	}
+	char key_ind;
+	at24_read (_KEY_IND_ADR, &key_ind, 1);
 	cdc_write ("saving name: '");
 	cdc_write (name);
 	cdc_write ("' for '");
-	char key_str [_KEY_REC_SIZE] = {0,};
+	char key_str [_KEY_REC_SIZE];
+	memset (key_str, 0, _KEY_REC_SIZE);
 	key2str (key_str, key_code);
 	cdc_write (key_str);
 	cdc_write ("'\n\r");
@@ -484,13 +492,11 @@ int memory_set_name (int key_code, char * name)
 	} else {
 		strcat (key_str, " ");
 		strcat (key_str, name);
-		cdc_write ("will write: ");
-		cdc_write (key_str);
-		cdc_write ("\n\r");
-//		write_eeprom (3*_KEY_REC_SIZE, "12345123451234512345132451234344", 32);
-		for (int i = 0; i < _KEY_REC_SIZE; i++) {
-//			i2c_write_byte (0xA0, 2*_KEY_REC_SIZE + i, key_str[i]);
-		}
+		at24_write (_KEY_REC_SIZE*key_ind, key_str, _KEY_REC_SIZE);
+		key_ind++;
+		if (key_ind > _KEY_MAP_SIZE-1)
+			key_ind = 0;
+		at24_write (_KEY_IND_ADR, &key_ind, 1);
 		key_code = 0;
 	}
 	return 1;
@@ -744,8 +750,10 @@ int main()
 		key_code = ir_code (pir);
 		if (key_code) {
 			last_key_code = key_code;
-			char key_str [32] = {0,};
-			char key_name [32] = {0,};
+			char key_str [_KEY_REC_SIZE];
+			char key_name [_KEY_REC_SIZE];
+			memset (key_str, 0, _KEY_REC_SIZE);
+			memset (key_name, 0, _KEY_REC_SIZE);
 			key2str (key_str, key_code);
 			if (memory_find_name (key_str, key_name))
 				cdc_write (key_name);

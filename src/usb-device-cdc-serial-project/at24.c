@@ -32,6 +32,8 @@ int at24_write_bound (int adr, char * data, int len)
 }
 
 //*****************************************************************************
+// write data to eeprom
+// return 0 if ok, otherwise 1
 int at24_write (int adr, char * data, int len)
 {
 	//write from adr to current page end
@@ -42,7 +44,7 @@ int at24_write (int adr, char * data, int len)
 	adr += tmp_len;
 	data += tmp_len;
 	// now write all entire page
-	while (len > AT24_PAGE_LEN) {
+	while (len > AT24_PAGE_LEN-1) {
 		if (at24_write_bound (adr, data, AT24_PAGE_LEN))
 			return 1;
 		len -= AT24_PAGE_LEN;
@@ -56,7 +58,8 @@ int at24_write (int adr, char * data, int len)
 }
 
 //*****************************************************************************
-// return 1 if eeprom not respons, otherwise 0
+// read data from eeprom
+// return 0 if ok, otherwise 1
 int at24_read (int adr, char * data, int len)
 {
 	int cnt = 0;
