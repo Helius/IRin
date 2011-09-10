@@ -33,8 +33,10 @@ void i2c_init(void);
 void i2c_set_delay (int delay);
 // get delay
 int  i2c_get_delay (void);
+// delay
+void i2c_delay (int cnt);
 // start condition
-void i2c_start (void);
+int i2c_start (void);
 // stop condition
 void i2c_stop (void);
 // put byte on bus

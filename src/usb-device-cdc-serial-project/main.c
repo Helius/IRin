@@ -706,7 +706,8 @@ int main()
 	// connect if needed
 	VBUS_CONFIGURE();
 	usb_recieve = 0;
-
+	int cnt = 0;
+	int i = 0;
 	// Driver loop
 	while (1) {
 
@@ -762,6 +763,34 @@ int main()
 															0);
 			}
 		}
+
+
+		cnt++;
+		if (cnt > 100000) {
+			char buf [AT24_PAGE_LEN];
+			i++;
+			if (i >= 2048)
+				i = 0;
+			memset (buf, (i&0xFF), AT24_PAGE_LEN);
+			if (at24_write_page (i*AT24_PAGE_LEN, buf, 4)) {
+				cdc_write ("Error while write\n\r");
+			}
+			i2c_delay (10);
+			memset (buf, 0, AT24_PAGE_LEN);
+			if (at24_read_page (i*AT24_PAGE_LEN, buf, 4)) {
+				cdc_write ("Error while read\n\r");
+			}
+			for (int j = 0; j < 4; j++) {
+				if (buf[j] != (i&0xFF)) {
+					cdc_write ("data lost!\n\r");
+					sprintf (buf,"%d != %d\n\r", i&0xFF, buf[j]);
+					cdc_write (buf);
+				}
+			}
+			cnt = 0;
+		}
+
+
 	}
 }
 

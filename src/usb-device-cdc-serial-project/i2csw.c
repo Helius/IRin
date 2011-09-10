@@ -2,7 +2,7 @@
 
 #include "i2csw.h"
 
-int bus_delay = 1000;
+int bus_delay = 5;
 
 //*****************************************************************************
 void i2c_set_delay (int delay) {
@@ -15,7 +15,7 @@ int i2c_get_delay (void) {
 }
 
 //*****************************************************************************
-static void i2c_delay (int cnt)
+void i2c_delay (int cnt)
 {
 	for (int i = 0; i < cnt*bus_delay; i++) {
 		volatile int tmp = i;
@@ -23,26 +23,27 @@ static void i2c_delay (int cnt)
 }
 
 //*****************************************************************************
-void i2c_start (void)
+int i2c_start (void)
 {				
 	SCL_IN;
 	SDA_IN;
-	i2c_delay (5);
+	i2c_delay (1);
+//	if ((!SCL_IS) || (!SDA_IS))
+//		return 1;
 	SDA_OUT;
-	i2c_delay(5);
+	i2c_delay(1);
 	SCL_OUT;
-	i2c_delay(5);
+	i2c_delay(1);
+	return 0;
 }
 //*****************************************************************************
 void i2c_stop (void)
 {
-	SCL_OUT;
 	SDA_OUT;
-	i2c_delay(2);  
+	i2c_delay(1);  
 	SCL_IN;
-	i2c_delay(2);  
+	i2c_delay(1);  
 	SDA_IN;
-	i2c_delay(2);    
 }
 //*****************************************************************************
 void i2c_init (void)
@@ -76,13 +77,12 @@ int i2c_putbyte (int data)
 	SDA_IN;
 	i2c_delay(1);
 	SCL_IN;
+	if (SDA_IS) 
+		ret=1;
 	i2c_delay(1);
 	SCL_OUT;
 
-//	while (!(SCL_IS));
-//	if (SDA_IS) 
-//		ret=1;
-	i2c_delay(5);
+	i2c_delay(1);
 	return ret;
 }
 
@@ -109,14 +109,9 @@ int i2c_getbyte (int ack)
 	}
 	i2c_delay(1);
 	SCL_IN;
-//	while (!(SCL_IS));
 	i2c_delay(2);
 	SCL_OUT;
-//	i2c_delay(1);
 	SDA_IN;
-//	i2c_delay(1);
-//	SCL_IN;
-//	i2c_delay(2);
 	return data;
 }
 

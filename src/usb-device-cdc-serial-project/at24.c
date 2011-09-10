@@ -12,27 +12,42 @@ AT24C16A using i2c address byte A0 A1 A2 lower bit as P0 P1 P2 - high part of pa
 int at24_write_page (int page_adr, char * data, int len)
 { 
 	int res = 0;
+
+_start_w:
+
 	i2c_start ();
+	res = i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
+
+	if (res) {
+		i2c_stop ();
+		goto _start_w;
+	}
+	
 	// at24c16a use A0 A1 A2 line for addresing memory too
-	res |= i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
-	if (res)
-		return res;
+	
 	res |= i2c_putbyte (page_adr);
 	for (int i = 0; i < len; i++)
 		res |= i2c_putbyte (data[i]);
 	i2c_stop ();
 	return res;
-	
 }
 
 //*****************************************************************************
 int at24_read_page (int page_adr, char * data, int len)
 {
+	int cnt = 0;
 	int res = 0;
+
+_start_r:
+
 	i2c_start ();
-	res |= i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
-	if (res) 
-		return res;
+	res = i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
+
+	if (res) {
+		i2c_stop ();
+		goto _start_r;
+	}
+	
 	res |= i2c_putbyte (page_adr);
 	i2c_start ();
 	res |= i2c_putbyte (EEPROM_ADR + EEPROM_RW_BIT);
