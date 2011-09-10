@@ -9,21 +9,19 @@ AT24C16A using i2c address byte A0 A1 A2 lower bit as P0 P1 P2 - high part of pa
 */
 
 //*****************************************************************************
+// return 1 if eeprom not respons, otherwise 0
 int at24_write_page (int page_adr, char * data, int len)
 { 
 	int res = 0;
+	int cnt = 0;
 
-_start_w:
-
-	i2c_start ();
-	res = i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
-
-	if (res) {
-		i2c_stop ();
-		goto _start_w;
-	}
+	do {
+		i2c_start ();
+		// at24c16a use A0 A1 A2 bit for addresing memory too
+		res = i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
+	} while (res && (cnt < 20));
 	
-	// at24c16a use A0 A1 A2 line for addresing memory too
+	if (res) return 1;
 	
 	res |= i2c_putbyte (page_adr);
 	for (int i = 0; i < len; i++)
@@ -33,20 +31,19 @@ _start_w:
 }
 
 //*****************************************************************************
+// return 1 if eeprom not respons, otherwise 0
 int at24_read_page (int page_adr, char * data, int len)
 {
 	int cnt = 0;
 	int res = 0;
 
-_start_r:
+	do {
+		i2c_start ();
+		// at24c16a use A0 A1 A2 bit for addresing memory too
+		res = i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
+	} while (res && (cnt < 20));
 
-	i2c_start ();
-	res = i2c_putbyte (EEPROM_ADR | ((page_adr>>7)&0x0E));
-
-	if (res) {
-		i2c_stop ();
-		goto _start_r;
-	}
+	if (res) return 1;
 	
 	res |= i2c_putbyte (page_adr);
 	i2c_start ();

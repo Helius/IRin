@@ -28,8 +28,6 @@ int i2c_start (void)
 	SCL_IN;
 	SDA_IN;
 	i2c_delay (1);
-//	if ((!SCL_IS) || (!SDA_IS))
-//		return 1;
 	SDA_OUT;
 	i2c_delay(1);
 	SCL_OUT;
@@ -62,7 +60,6 @@ int i2c_putbyte (int data)
 	int count = 8, ret = 0;
 	while (count--) {
 		SCL_OUT;
-		i2c_delay(1);
 		if (data&0x80)
 			SDA_IN;
 		else                
@@ -79,10 +76,8 @@ int i2c_putbyte (int data)
 	SCL_IN;
 	if (SDA_IS) 
 		ret=1;
-	i2c_delay(1);
+//	i2c_delay(1);
 	SCL_OUT;
-
-	i2c_delay(1);
 	return ret;
 }
 
@@ -94,7 +89,7 @@ int i2c_getbyte (int ack)
 	while (count--) {
 		data <<= 1;
 		SCL_OUT;
-		i2c_delay(2);
+		i2c_delay(1);
 		SCL_IN;
 		i2c_delay(1);
 		if (SDA_IS) data |= 1;	
@@ -109,7 +104,7 @@ int i2c_getbyte (int ack)
 	}
 	i2c_delay(1);
 	SCL_IN;
-	i2c_delay(2);
+	i2c_delay(1);
 	SCL_OUT;
 	SDA_IN;
 	return data;
