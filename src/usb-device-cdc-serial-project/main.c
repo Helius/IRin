@@ -412,8 +412,8 @@ void print_help ()
 	cdc_write ("Use TAB key for completion\n\rCommand:\n\r\thelp - this message\n\r\tmem { format | print [ start [ stop ] ] }");
 }
 
-#define _KEY_MAP_SIZE 8
-#define _KEY_REC_SIZE 16
+#define _KEY_MAP_SIZE 60
+#define _KEY_REC_SIZE 32
 
 //*****************************************************************************
 void memory_cmd_usage ()
@@ -429,7 +429,7 @@ void memory_print (int start, int stop)
 	for (int i = start; i < stop; i++) {
 		sprintf (nmb, "page %2d: ", i);
 		cdc_write (nmb);
-		if (at24_read_page (i*16, buf, _KEY_REC_SIZE))
+		if (at24_read (i*16, buf, _KEY_REC_SIZE))
 			cdc_write ("eeprom read failed\n\r");
 		buf[16]=0;
 		cdc_write (buf);
@@ -440,10 +440,10 @@ void memory_print (int start, int stop)
 //*****************************************************************************
 void memory_format (void)
 {
-	char buf [_KEY_REC_SIZE]={0};
-	strncpy (buf, "0123456789abcdef", 16);
-	for (int i = 0; i < _KEY_MAP_SIZE; i++) {
-		if (at24_write_page (i, buf, _KEY_REC_SIZE-10)) {
+	char buf [AT24_PAGE_LEN];
+	memset (buf, 0, AT24_PAGE_LEN);
+	for (int i = 0; i < AT24_PAGE_NMB; i++) {
+		if (at24_write (i*AT24_PAGE_LEN, buf, AT24_PAGE_LEN)) {
 			cdc_write ("write failed");
 		}
 	}
@@ -465,7 +465,7 @@ int memory_find_name (char * key_str, char * name)
 }
 
 //*****************************************************************************
-int eeprom_set_name (int key_code, char * name)
+int memory_set_name (int key_code, char * name)
 {
 	if (key_code == 0) {
 		cdc_write ("Key not set! Please, press key on IR\n\r");
@@ -552,7 +552,7 @@ int execute (int argc, const char * const * argv)
 
 		} else if (strcmp (argv[i], _CMD_WRITE) == 0) {
 			int start = atoi (argv[++i]);
-				if (at24_write_page (start, argv[++i], strlen(argv[i]))) {
+				if (at24_write (start, argv[++i], strlen(argv[i]))) {
 					cdc_write ("write failed");
 				}
 		} else if (strcmp (argv[i], _CMD_READ) == 0) {
@@ -560,7 +560,7 @@ int execute (int argc, const char * const * argv)
 			memset (buf, 0, 128);
 			int start = atoi (argv [++i]);
 			int len = atoi (argv[++i]);
-			if (at24_read_page (start, buf, len))
+			if (at24_read (start, buf, len))
 				cdc_write ("eeprom read failed\n\r");
 			for (int j = 0; j < len; j++) {
 				if (buf[j] == 0)
@@ -570,7 +570,7 @@ int execute (int argc, const char * const * argv)
 			cdc_write ("\n\r");
 		} else if (strcmp (argv[i], _CMD_SETNAME) == 0) {
 			if (++i < argc) {
-				eeprom_set_name (last_key_code, argv[i]);
+				memory_set_name (last_key_code, argv[i]);
 				last_key_code = 0;
 			} else {
 				cdc_write ("command setname needs argument - ascii name\n\r");
@@ -706,8 +706,12 @@ int main()
 	// connect if needed
 	VBUS_CONFIGURE();
 	usb_recieve = 0;
+
+#ifdef _EEPROM_DEBUG
 	int cnt = 0;
 	int i = 0;
+#endif
+
 	// Driver loop
 	while (1) {
 
@@ -764,7 +768,7 @@ int main()
 			}
 		}
 
-
+#ifdef _EEPROM_DEBUG
 		cnt++;
 		if (cnt > 100000) {
 			char buf [AT24_PAGE_LEN];
@@ -772,12 +776,12 @@ int main()
 			if (i >= 2048)
 				i = 0;
 			memset (buf, (i&0xFF), AT24_PAGE_LEN);
-			if (at24_write_page (i*AT24_PAGE_LEN, buf, 4)) {
+			if (at24_write (i*AT24_PAGE_LEN, buf, 4)) {
 				cdc_write ("Error while write\n\r");
 			}
 			i2c_delay (10);
 			memset (buf, 0, AT24_PAGE_LEN);
-			if (at24_read_page (i*AT24_PAGE_LEN, buf, 4)) {
+			if (at24_read (i*AT24_PAGE_LEN, buf, 4)) {
 				cdc_write ("Error while read\n\r");
 			}
 			for (int j = 0; j < 4; j++) {
@@ -789,6 +793,7 @@ int main()
 			}
 			cnt = 0;
 		}
+#endif
 
 
 	}

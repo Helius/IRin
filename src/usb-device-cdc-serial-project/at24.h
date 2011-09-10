@@ -21,9 +21,10 @@
 	#define AT24_PAGE_NMB  32
 #endif
 
-// write to eeprom 
-int at24_write_page (int page_adr, char * data, int len);
-// read from eeprom
-int at24_read_page (int page_adr, char * data, int len);
+// write to eeprom, return 0 if successful, otherwise 1 
+int at24_write (int page_adr, char * data, int len);
+
+// read from eeprom, return 0 if successful, otherwise 1 
+int at24_read (int page_adr, char * data, int len);
 
 #endif

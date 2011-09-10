@@ -44,17 +44,4 @@ int i2c_putbyte (int data);
 // get bute from bus
 int i2c_getbyte (int ack);
 
-
-//// read one byte from bus
-//int i2c_read_byte (int, int);
-//// write one byte to bus
-//int i2c_write_byte (int, int, int);
-//// read array from bus
-//int i2c_read_string(int, int, char *, int);
-//// write array to bus
-//int i2c_write_string(int, int, char *, int);
-
-
-
-
 #endif
