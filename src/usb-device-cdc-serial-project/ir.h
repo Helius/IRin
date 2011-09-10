@@ -15,6 +15,8 @@
 #define _UNDEF_PR					0
 #define _NEC_PR						1
 
+#define _DEF_REPEAT_DELAY 500
+
 //for NEC protocol (in 100us ticks)
 #define _TIME_SYNCH_HI_PULSE	90
 #define _TIME_SYNCH_LO_PULSE	45
@@ -29,6 +31,7 @@ typedef struct {
 	unsigned int raw;
 	unsigned int code; // at least 16 bit on your platform!!
 	int ready_flag;
+	int repeat_delay;
 	int led_cnt;
 } ir_t;
 
@@ -37,6 +40,8 @@ void ir_init (ir_t *);
 void ir_line_handler (ir_t*, int);
 void ir_time_handler (ir_t*);
 int  ir_code (ir_t*);
+void ir_set_repeat_delay (ir_t * this, int delay);
+int  ir_get_repeat_delay (ir_t * this);
 
 
 #endif

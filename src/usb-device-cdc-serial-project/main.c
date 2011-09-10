@@ -502,18 +502,19 @@ int memory_set_name (int key_code, char * name)
 	return 1;
 }
 
-#define _CMD_HELP    "help"
-#define _CMD_READ    "read"
-#define _CMD_WRITE   "write"
-#define _CMD_SETNAME "setname"
-#define _CMD_EEPROM  "eeprom"
-#define _SCMD_FORMAT "format"
-#define _SCMD_PRINT  "print"
-#define _SCMD_SPEED  "speed"
+#define _CMD_HELP     "help"
+#define _CMD_READ     "read"
+#define _CMD_WRITE    "write"
+#define _CMD_SETNAME  "setname"
+#define _CMD_REPDELAY "rep_delay"
+#define _CMD_EEPROM   "eeprom"
+  #define _SCMD_FORMAT  "format"
+  #define _SCMD_PRINT   "print"
 
-#define _NUM_OF_CMD 5
-char * keyworld [] = {_CMD_HELP,_CMD_READ,_CMD_WRITE,_CMD_SETNAME,_CMD_EEPROM};
-char * mem_sub_cmd [] = {_SCMD_PRINT, _SCMD_FORMAT,_SCMD_SPEED};
+
+#define _NUM_OF_CMD 6
+char * keyworld [] = {_CMD_HELP,_CMD_READ,_CMD_WRITE,_CMD_SETNAME,_CMD_EEPROM,_CMD_REPDELAY};
+char * mem_sub_cmd [] = {_SCMD_PRINT, _SCMD_FORMAT};
 char ** compl_world [_NUM_OF_CMD + 1];
 
 //*****************************************************************************
@@ -526,6 +527,14 @@ int execute (int argc, const char * const * argv)
 			cdc_write ("microrl library based IRin shell v 1.0\n\r");
 			print_help ();
 			return 1;
+		} else if (strcmp (argv[i], _CMD_REPDELAY) == 0) {
+			if (++i == argc) {
+				char str [16];
+				snprintf (str, 16, "%d ms\n\r", ir_get_repeat_delay(pir));
+				cdc_write (str);
+			} else {
+				ir_set_repeat_delay (pir, atoi (argv[i]));
+			}
 		} else if (strcmp (argv[i], _CMD_EEPROM) == 0) {
 			if (!(++i < argc)) {
 				memory_cmd_usage ();

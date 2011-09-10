@@ -18,6 +18,7 @@ void ir_init (ir_t * this)
 	this->code = 0;
 	this->ready_flag = false;
 	this->led_cnt = 0;
+	this->repeat_delay = _DEF_REPEAT_DELAY;
 }
 
 //*****************************************************************************
@@ -118,6 +119,7 @@ void ir_line_handler (ir_t * this, int level)
 //*****************************************************************************
 int ir_code (ir_t * this)
 {
+	//TODO: here we will calc delay after last key pressed, based on repeat_delay value, but we need to rewrite repeate key code handler, it have to set not ready_flag but some repeate_flag, so we will know key or repeate key received.
 	if (this->ready_flag) {
 		this->ready_flag = false;
 		return this->code;
@@ -125,3 +127,14 @@ int ir_code (ir_t * this)
 	return 0;
 }
 
+//*****************************************************************************
+int ir_get_repeat_delay (ir_t * this)
+{
+	return this->repeat_delay;
+}
+
+//*****************************************************************************
+void ir_set_repeat_delay (ir_t * this, int delay)
+{
+	this->repeat_delay = delay;
+}
