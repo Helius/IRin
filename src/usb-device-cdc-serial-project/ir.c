@@ -16,20 +16,22 @@ void ir_init (ir_t * this)
 	this->state = _IR_IDLE;
 	this->protocol = _UNDEF_PR;
 	this->code = 0;
-	this->ready_flag = false;
+	this->receive_flag = false;
+	this->repeat_flag = false;
 	this->led_cnt = 0;
 	this->repeat_delay = _DEF_REPEAT_DELAY;
 }
 
 //*****************************************************************************
-// need to call 100us period
+// need to call 100us period for ir internal timing clock
 void ir_time_handler (ir_t * this)
 {
+	this->repeat_time++;
 	if (this->state != _IR_IDLE)
 		this->timer++;
 
 	if (this->state == _IR_REPEAT) {
-		this->ready_flag = true;
+		this->repeat_flag = true;
 		this->led_cnt = 100;
 		PIO_Set (&ledGrn);
 		this->state = _IR_IDLE;
@@ -57,7 +59,7 @@ static int accept_code (ir_t * this)
 	//check command
 	if (cmd[0] == (cmd[1]^0xFF)) {
 		this->code = this->raw & (0xFFFFFF);
-		this->ready_flag = true;
+		this->receive_flag = true;
 //		TRACE_DEBUG ("\t[cmd][adr_h][adr_l] %x", this->code);
 		PIO_Set (&ledGrn);
 		this->led_cnt = 1000;
@@ -117,11 +119,16 @@ void ir_line_handler (ir_t * this, int level)
 }
 
 //*****************************************************************************
+// return key code or repeated key code, 0 if there is no new key
 int ir_code (ir_t * this)
 {
-	//TODO: here we will calc delay after last key pressed, based on repeat_delay value, but we need to rewrite repeate key code handler, it have to set not ready_flag but some repeate_flag, so we will know key or repeate key received.
-	if (this->ready_flag) {
-		this->ready_flag = false;
+	if (this->receive_flag) {
+		this->receive_flag = false;
+		this->repeat_time = 0;
+		return this->code;
+	} else if (this->repeat_flag && (this->repeat_time/10 > this->repeat_delay)) {
+		this->repeat_flag = false;
+		this->repeat_time = 0;
 		return this->code;
 	}
 	return 0;
@@ -138,3 +145,4 @@ void ir_set_repeat_delay (ir_t * this, int delay)
 {
 	this->repeat_delay = delay;
 }
+

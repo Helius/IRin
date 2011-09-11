@@ -23,6 +23,7 @@
 #define _TIME_DATA_1_PULSE		22
 #define _TIME_DATA_0_PULSE		11
 
+// ir receiver object type
 typedef struct {
 	int protocol;
 	int state;
@@ -30,16 +31,22 @@ typedef struct {
 	int timer;
 	unsigned int raw;
 	unsigned int code; // at least 16 bit on your platform!!
-	int ready_flag;
+	int receive_flag;
+	int repeat_flag;
 	int repeat_delay;
+	int repeat_time;
 	int led_cnt;
 } ir_t;
 
-
+// init of ir lib
 void ir_init (ir_t *);
+// call if ir receiver line level changed
 void ir_line_handler (ir_t*, int);
+// call periodically at 100 us for internal timings
 void ir_time_handler (ir_t*);
+// return key code or 0 if no key pressed
 int  ir_code (ir_t*);
+// set/get repeate key press delay 
 void ir_set_repeat_delay (ir_t * this, int delay);
 int  ir_get_repeat_delay (ir_t * this);
 
