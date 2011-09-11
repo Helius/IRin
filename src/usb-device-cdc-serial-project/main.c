@@ -415,6 +415,7 @@ void print_help ()
 #define _KEY_MAP_SIZE    60
 #define _KEY_REC_SIZE    32
 #define _KEY_IND_ADR     (AT24_PAGE_LEN*AT24_PAGE_NMB-8)
+#define _IR_REPDELAY_ADR _KEY_IND_ADR + 1
 
 //*****************************************************************************
 void memory_cmd_usage ()
@@ -529,11 +530,23 @@ int execute (int argc, const char * const * argv)
 			return 1;
 		} else if (strcmp (argv[i], _CMD_REPDELAY) == 0) {
 			if (++i == argc) {
+				int delay = 9;
+				char buf [2];
+				at24_read (_IR_REPDELAY_ADR, buf, 2); //2 byte for delay (in ms)
+				delay = buf [0];
+				delay <<= 8;
+				delay += buf [1];
 				char str [16];
-				snprintf (str, 16, "%d ms\n\r", ir_get_repeat_delay(pir));
+				snprintf (str, 16, "%d ms\n\r", delay);
 				cdc_write (str);
 			} else {
-				ir_set_repeat_delay (pir, atoi (argv[i]));
+				int delay = atoi (argv [i]);
+				ir_set_repeat_delay (pir, delay);
+				//save delay to eeprom
+				char buf[2];
+				buf [0] = (delay>>8) & 0xFF;
+				buf [1] =  delay & 0xFF;
+				at24_write (_IR_REPDELAY_ADR, buf, 2);//2 byte for delay (in ms)
 			}
 		} else if (strcmp (argv[i], _CMD_EEPROM) == 0) {
 			if (!(++i < argc)) {
@@ -666,6 +679,15 @@ int main()
 	i2c_init ();
 	// init of ir
 	ir_init (pir);
+	{ // read delay from eeprom
+		int delay;
+		char buf[2];
+		at24_read (_IR_REPDELAY_ADR, buf, 2); //2 byte for delay (in ms)
+		delay = buf [0];
+		delay <<= 8;
+		delay += buf [1];
+		ir_set_repeat_delay (pir, delay);
+	}
 	// init microrl library
 	microrl_init (prl, cdc_write);
 	// set callback for execute

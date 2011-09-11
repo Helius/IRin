@@ -143,6 +143,9 @@ int ir_get_repeat_delay (ir_t * this)
 //*****************************************************************************
 void ir_set_repeat_delay (ir_t * this, int delay)
 {
-	this->repeat_delay = delay;
+	if ((delay > 5000) && (delay < 50))
+		this->repeat_delay = delay;
+	else
+		this->repeat_delay = _DEF_REPEAT_DELAY;
 }
 
