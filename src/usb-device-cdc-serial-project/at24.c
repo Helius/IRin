@@ -82,3 +82,4 @@ int at24_read (int adr, char * data, int len)
 	i2c_stop ();
 	return res;
 }
+

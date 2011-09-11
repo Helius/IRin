@@ -502,12 +502,12 @@ int memory_set_name (int key_code, char * name)
 	return 1;
 }
 
-#define _CMD_HELP     "help"
-#define _CMD_READ     "read"
-#define _CMD_WRITE    "write"
-#define _CMD_SETNAME  "setname"
-#define _CMD_REPDELAY "rep_delay"
-#define _CMD_EEPROM   "eeprom"
+#define _CMD_HELP       "help"
+#define _CMD_READ       "read"
+#define _CMD_WRITE      "write"
+#define _CMD_SETNAME    "setname"
+#define _CMD_REPDELAY   "rep_delay"
+#define _CMD_EEPROM     "eeprom"
   #define _SCMD_FORMAT  "format"
   #define _SCMD_PRINT   "print"
 
@@ -727,7 +727,7 @@ int main()
 	int i = 0;
 #endif
 
-	// Driver loop
+	// main loop
 	while (1) {
 
 		// Device is not configured
@@ -743,7 +743,7 @@ int main()
 															(TransferCallback) UsbDataReceived,
 															0);
 		} else {
-			PIO_Clear (&ledRed);					
+			PIO_Clear (&ledRed);
 		}
 
 		if( USBState == STATE_SUSPEND ) {
@@ -786,6 +786,7 @@ int main()
 		}
 
 #ifdef _EEPROM_DEBUG
+/* part for test eeprom memory, read-write some value*/
 		cnt++;
 		if (cnt > 100000) {
 			char buf [AT24_PAGE_LEN];
