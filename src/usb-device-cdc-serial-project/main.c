@@ -530,14 +530,8 @@ int execute (int argc, const char * const * argv)
 			return 1;
 		} else if (strcmp (argv[i], _CMD_REPDELAY) == 0) {
 			if (++i == argc) {
-				int delay = 9;
-				char buf [2];
-				at24_read (_IR_REPDELAY_ADR, buf, 2); //2 byte for delay (in ms)
-				delay = buf [0];
-				delay <<= 8;
-				delay += buf [1];
 				char str [16];
-				snprintf (str, 16, "%d ms\n\r", delay);
+				snprintf (str, 16, "%d ms\n\r", ir_get_repeat_delay (pir));
 				cdc_write (str);
 			} else {
 				int delay = atoi (argv [i]);
@@ -675,19 +669,6 @@ int main()
 	printf ("-- %s\n\r", BOARD_NAME);
 	printf ("-- Compiled: %s %s --\n\r\n\r", __DATE__, __TIME__);
 
-	// init eeprom interface
-	i2c_init ();
-	// init of ir
-	ir_init (pir);
-	{ // read delay from eeprom
-		int delay;
-		char buf[2];
-		at24_read (_IR_REPDELAY_ADR, buf, 2); //2 byte for delay (in ms)
-		delay = buf [0];
-		delay <<= 8;
-		delay += buf [1];
-		ir_set_repeat_delay (pir, delay);
-	}
 	// init microrl library
 	microrl_init (prl, cdc_write);
 	// set callback for execute
@@ -721,7 +702,6 @@ int main()
 	PIO_Set (&ledRed);
 	PIO_Clear (&ledGrn);
 
-
 	// Configure timer 1 for IR module (100us interrupt)
 	AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_TC1);
 	AT91C_BASE_TC1->TC_CCR = AT91C_TC_CLKDIS;
@@ -748,6 +728,22 @@ int main()
 	int cnt = 0;
 	int i = 0;
 #endif
+	
+	// init eeprom interface
+	i2c_init ();
+
+	// init of ir
+	ir_init (pir);
+
+	// read delay from eeprom
+	int delay = 9;
+	char buf[2];
+	at24_read (_IR_REPDELAY_ADR, buf, 2); //2 byte for delay (in ms)
+	delay = buf [0];
+	delay <<= 8;
+	delay += buf [1];
+	ir_set_repeat_delay (pir, delay);
+	
 
 	// main loop
 	while (1) {

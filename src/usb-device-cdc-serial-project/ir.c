@@ -126,7 +126,9 @@ int ir_code (ir_t * this)
 		this->receive_flag = false;
 		this->repeat_time = 0;
 		return this->code;
-	} else if (this->repeat_flag && (this->repeat_time/10 > this->repeat_delay)) {
+	} 
+	
+	if (this->repeat_flag && (this->repeat_time > this->repeat_delay*10)) {
 		this->repeat_flag = false;
 		this->repeat_time = 0;
 		return this->code;
@@ -143,7 +145,7 @@ int ir_get_repeat_delay (ir_t * this)
 //*****************************************************************************
 void ir_set_repeat_delay (ir_t * this, int delay)
 {
-	if ((delay > 5000) && (delay < 50))
+	if ((delay < 5000) && (delay > 50))
 		this->repeat_delay = delay;
 	else
 		this->repeat_delay = _DEF_REPEAT_DELAY;
