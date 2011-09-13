@@ -22,6 +22,7 @@
 #define _TIME_SYNCH_LO_PULSE	45
 #define _TIME_DATA_1_PULSE		22
 #define _TIME_DATA_0_PULSE		11
+#define _DATA_LAPS            2
 
 // ir receiver object type
 typedef struct {
