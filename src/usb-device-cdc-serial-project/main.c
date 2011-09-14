@@ -483,9 +483,6 @@ int memory_set_name (int key_code, char * name)
 	char key_str [_KEY_REC_SIZE];
 	char buf [_KEY_REC_SIZE];
 	
-	cdc_write (name);	
-	cdc_write ("\n\r");
-
 	// check that key was pressed
 	if (key_code == 0) {
 		cdc_write ("Key not set! Please, press key on IR\n\r");
