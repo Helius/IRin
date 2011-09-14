@@ -223,7 +223,6 @@ void cdc_write (char * data)
 // ir signal line change interrupt
 static void ISR_IR(const Pin *pPin)
 {
-	
   // call ir handler and pass level on IR pin (inverse, because IR reciever invert pulse)
 	ir_line_handler(pir, !PIO_Get(&pinIR));
 }
@@ -235,7 +234,6 @@ static void ISR_IR(const Pin *pPin)
 static void IR_Configure( void )
 {
     TRACE_DEBUG(" ");
-
     // Configure PIO
     PIO_Configure (&pinIR, 1);
     PIO_ConfigureIt (&pinIR, ISR_IR);
@@ -329,11 +327,6 @@ static void ISR_Timer1()
 {
     unsigned int status = AT91C_BASE_TC1->TC_SR;
     if ((status & AT91C_TC_CPCS) != 0) {
-//			if (PIO_Get (&pinToggle))
-//				PIO_Clear (&pinToggle);
-//			else
-//				PIO_Set (&pinToggle);
-			// call 100us periodicaly
 			ir_time_handler (pir);
 			AT91C_BASE_TC1->TC_CCR = AT91C_TC_CLKEN | AT91C_TC_SWTRG;
     }
@@ -379,22 +372,14 @@ static void UsbDataReceived(unsigned int unused,
 {
     // Check that data has been received successfully
     if (status == USBD_STATUS_SUCCESS) {
-
-        // Send data through USART
-//        while (!USART_WriteBuffer(AT91C_BASE_US0, usbBuffer, received));
-//        AT91C_BASE_US0->US_IER = AT91C_US_TXBUFE;
 			usb_recieve = received;
-
         // Check if bytes have been discarded
         if ((received == DATABUFFERSIZE) && (remaining > 0)) {
-
             TRACE_WARNING(
                       "UsbDataReceived: %u bytes discarded\n\r",
                       remaining);
         }
-    }
-    else {
-
+    } else {
         TRACE_WARNING( "UsbDataReceived: Transfer error\n\r");
     }
 }
@@ -406,31 +391,35 @@ void key2str (char * key_str, int key_code)
 }
 
 //*****************************************************************************
-// help for microrl library
+// help for command line interface
 void print_help ()
 {
 	cdc_write ("Use TAB key for completion\n\r");
 	cdc_write ("Command:\n\r");
 	cdc_write ("\thelp - this message\n\r");
 	cdc_write ("\teeprom { format | print [ start [ stop ] ] }\n\r");
-	cdc_write ("\t\tformat - fill all eeprom with 0\n\r");
+	cdc_write ("\t\tformat [ind] - erase 'ind' key record (if ind < _KEY_MAP_SIZE) or erase entire eeprom overwise\n\r");
 	cdc_write ("\t\tprint - output key strings saved to eeprom, start and stop - start key and stop key position (0..60)\n\r");
 	cdc_write ("\trep_delay [delay_ms] - set repete key press delay in ms, or print saved delay if 'delay_ms' not present\n\r");
 	cdc_write ("\tsetname 'name' - set name for last pressed key\n\r");
 }
 
-#define _KEY_MAP_SIZE    60
-#define _KEY_REC_SIZE    32
-#define _KEY_IND_ADR     (AT24_PAGE_LEN*AT24_PAGE_NMB-8)
-#define _IR_REPDELAY_ADR _KEY_IND_ADR + 1
+// define for memory where store key records, records is null-terminated string less than 32 chars
+// key code from key name separated with one whitespace " "
+#define _KEY_MAP_SIZE    60																// max 60 key string may store
+#define _KEY_REC_SIZE    32																// max len of one string (include '\0')
+#define _KEY_IND_ADR     (AT24_PAGE_LEN*AT24_PAGE_NMB-8)  // addr of last key record (need for simple round overwrite old key)
+#define _IR_REPDELAY_ADR _KEY_IND_ADR + 1									// addr for store repeat key press delay (2byte)
 
 //*****************************************************************************
+// context help for memory command (just as example of shell feature)
 void memory_cmd_usage ()
 {
 	cdc_write ("eeprom - eeprom memory operations, usage:\n\r\teeprom { format | print [ start_index [ end_index ] ] }\n\r");
 }
 
 //*****************************************************************************
+// print key record as string
 void memory_print (int start, int stop)
 {
 	char buf [_KEY_REC_SIZE+1];
@@ -447,20 +436,30 @@ void memory_print (int start, int stop)
 }
 
 //*****************************************************************************
-void memory_format (void)
+// fill key memory with 0
+// if ind < _KEY_MAP_SIZE - erase only 'ind' record
+// overwise erase all eeprom key memory
+void memory_format (int ind)
 {
 	char buf [_KEY_REC_SIZE];
 	memset (buf, 0, _KEY_REC_SIZE);
-	for (int i = 0; i <  _KEY_MAP_SIZE; i++) {
-		if (at24_write (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE)) {
+	if (ind < _KEY_MAP_SIZE) {
+		if (at24_write (ind*_KEY_REC_SIZE, buf, _KEY_REC_SIZE)) {
 			cdc_write ("write failed");
 		}
+	} else {
+		for (int i = 0; i <  _KEY_MAP_SIZE; i++) {
+			if (at24_write (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE)) {
+				cdc_write ("write failed");
+			}
+		}
+		char key_ind=0;
+		at24_write (_KEY_IND_ADR, &key_ind, 1);
 	}
-	char key_ind=0;
-	at24_write (_KEY_IND_ADR, &key_ind, 1);
 }
 
 //*****************************************************************************
+// read key record and set name to 'name' if key code matched
 int memory_find_name (char * key_str, char * name)
 {
 	char buf [_KEY_REC_SIZE];
@@ -478,38 +477,74 @@ int memory_find_name (char * key_str, char * name)
 }
 
 //*****************************************************************************
+// add new key record for 'key_code' and 'name' at index (plased at _KEY_IND_ADR)
+// TODO: need to add feature - check that key was not be set, check that name is
+// not already use
 int memory_set_name (int key_code, char * name)
 {
+	char key_str [_KEY_REC_SIZE];
+	char buf [_KEY_REC_SIZE];
+
+	// check that key was pressed
 	if (key_code == 0) {
 		cdc_write ("Key not set! Please, press key on IR\n\r");
 		return 0;
 	}
-	char key_ind;
-	at24_read (_KEY_IND_ADR, &key_ind, 1);
+	
+	key2str (key_str, key_code);
+	// check that there is empty space for store record string
+	int empty_ind = 255;
+	int i;
+	for (i = 0; i < _KEY_MAP_SIZE; i++) {
+		at24_read (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE);
+
+		// if we find empty rec and it first record (empty_ind was not set) set empty_ind
+		if ((buf [0] == '\0') && (empty_ind == 255))
+			 empty_ind = i;
+
+		// check key
+		if (strncmp (key_str, buf, strlen (key_str)) == 0) {
+			cdc_write (buf);
+			cdc_write (" - key already was set!\n\r");
+			return 0;
+		}
+		// check name
+		char * sname = strstr (buf, name);
+		if (strcmp (sname, name) == 0) {
+			cdc_write (buf);
+			cdc_write (" - name already in use\n\r");
+			return 0;
+		}
+	}
+	if (empty_ind == 255) {
+		cdc_write ("There is no empty space for storing key...\n\ruse 'eeprom print' and 'eeprom format ind' for erase 'ind' key record\n\r");
+		return 0;
+	}
+
 	cdc_write ("saving name: '");
 	cdc_write (name);
 	cdc_write ("' for '");
-	char key_str [_KEY_REC_SIZE];
 	memset (key_str, 0, _KEY_REC_SIZE);
-	key2str (key_str, key_code);
 	cdc_write (key_str);
 	cdc_write ("'\n\r");
+	
+	// check record string len
 	if (strlen (name) + strlen(key_str) + 1 > _KEY_REC_SIZE) {
 		cdc_write ("Name too long\n\r");
 		return 0;
-	} else {
-		strcat (key_str, " ");
-		strcat (key_str, name);
-		at24_write (_KEY_REC_SIZE*key_ind, key_str, _KEY_REC_SIZE);
-		key_ind++;
-		if (key_ind > _KEY_MAP_SIZE-1)
-			key_ind = 0;
-		at24_write (_KEY_IND_ADR, &key_ind, 1);
-		key_code = 0;
 	}
+	
+	strcat (key_str, " ");
+	strcat (key_str, name);
+	
+	at24_write (_KEY_REC_SIZE * empty_ind, key_str, _KEY_REC_SIZE);
+	key_code = 0;
+	
 	return 1;
 }
 
+//*****************************************************************************
+// shell command defeni
 #define _CMD_HELP       "help"
 #define _CMD_SETNAME    "setname"
 #define _CMD_REPDELAY   "rep_delay"
@@ -517,10 +552,13 @@ int memory_set_name (int key_code, char * name)
   #define _SCMD_FORMAT  "format"
   #define _SCMD_PRINT   "print"
 
+#define _NUM_OF_CMD 4   // num of top level commands (subcommands are not included)
 
-#define _NUM_OF_CMD 4
+// array for store command token
 char * keyworld [] = {_CMD_HELP, _CMD_SETNAME, _CMD_EEPROM, _CMD_REPDELAY};
+// array for store subcommand token
 char * mem_sub_cmd [] = {_SCMD_PRINT, _SCMD_FORMAT};
+// array for stored pointer to command or subcommand token for completion variants
 char ** compl_world [_NUM_OF_CMD + 1];
 
 //*****************************************************************************
@@ -561,40 +599,17 @@ int execute (int argc, const char * const * argv)
 					end_ind = atoi (argv[i]);
 				memory_print (start_ind, end_ind);
 				return 1;
-//			} else if (strcmp (argv[i], "speed") == 0) {
-//				if (++i < argc) {
-//					i2c_set_delay (atoi (argv[i]));
-//				} else {
-//					char str [8];
-//					sprintf (str, "%d\n\r", i2c_get_delay());
-//					cdc_write (str);
-//				}
 			} else if (strcmp (argv[i], "format") == 0) {
-				memory_format ();
+				// if ind not in (0 .. _KEY_MAP_SIZE-1) format all, overwise only 'ind' record
+				int ind = _KEY_MAP_SIZE; 
+				if (++i < argc)
+					ind = atoi (argv[i])
+				memory_format (ind);
 				return 1;
 			} else {
 				memory_cmd_usage ();
 				return 0;
 			}
-
-//		} else if (strcmp (argv[i], _CMD_WRITE) == 0) {
-//			int start = atoi (argv[++i]);
-//				if (at24_write (start, argv[++i], strlen(argv[i]))) {
-//					cdc_write ("write failed");
-//				}
-//		} else if (strcmp (argv[i], _CMD_READ) == 0) {
-//			char buf [128];
-//			memset (buf, 0, 128);
-//			int start = atoi (argv [++i]);
-//			int len = atoi (argv[++i]);
-//			if (at24_read (start, buf, len))
-//				cdc_write ("eeprom read failed\n\r");
-//			for (int j = 0; j < len; j++) {
-//				if (buf[j] == 0)
-//					buf[j] = '.';
-//			}	
-//			cdc_write (buf);
-//			cdc_write ("\n\r");
 		} else if (strcmp (argv[i], _CMD_SETNAME) == 0) {
 			if (++i < argc) {
 				memory_set_name (last_key_code, argv[i]);
@@ -807,36 +822,6 @@ int main()
 															0);
 			}
 		}
-
-#ifdef _EEPROM_DEBUG
-/* part for test eeprom memory, read-write some value*/
-		cnt++;
-		if (cnt > 100000) {
-			char buf [AT24_PAGE_LEN];
-			i++;
-			if (i >= 2048)
-				i = 0;
-			memset (buf, (i&0xFF), AT24_PAGE_LEN);
-			if (at24_write (i*AT24_PAGE_LEN, buf, 4)) {
-				cdc_write ("Error while write\n\r");
-			}
-			i2c_delay (10);
-			memset (buf, 0, AT24_PAGE_LEN);
-			if (at24_read (i*AT24_PAGE_LEN, buf, 4)) {
-				cdc_write ("Error while read\n\r");
-			}
-			for (int j = 0; j < 4; j++) {
-				if (buf[j] != (i&0xFF)) {
-					cdc_write ("data lost!\n\r");
-					sprintf (buf,"%d != %d\n\r", i&0xFF, buf[j]);
-					cdc_write (buf);
-				}
-			}
-			cnt = 0;
-		}
-#endif
-
-
 	}
 }
 
