@@ -88,11 +88,13 @@ void ir_line_handler (ir_t * this, int level)
 						(this->timer > _TIME_SYNCH_LO_PULSE - 6)) {
 		this->timer = 0;
 		this->state = _IR_RX_DATA;
-// fuck! this is VERY buggy
-//	}	else if ((this->state == _IR_SYNCHRO_DOWN) && (level) &&
-//						(this->timer < _TIME_DATA_1_PULSE + _DATA_LAPS) && 
-//						(this->timer > _TIME_DATA_1_PULSE - _DATA_LAPS)) {
-//		this->state = _IR_REPEAT;
+	}	else if ((this->state == _IR_SYNCHRO_DOWN) && (level) &&
+						(this->timer < _TIME_DATA_1_PULSE + _DATA_LAPS) && 
+						(this->timer > _TIME_DATA_1_PULSE - _DATA_LAPS) &&
+						(this->repeat_time > this->repeat_delay*10)) {
+		this->repeat_time = 0;
+		this->state = _IR_REPEAT;
+		this->timer = 0;
 	}	else if (this->state == _IR_RX_DATA) {
 		if (level) {
 			this->raw >>= 1;
@@ -124,7 +126,7 @@ int ir_code (ir_t * this)
 		return this->code;
 	} 
 	
-	if (this->repeat_flag && (this->repeat_time > this->repeat_delay*10)) {
+	if (this->repeat_flag) {
 		this->repeat_flag = false;
 		this->repeat_time = 0;
 		return this->code;

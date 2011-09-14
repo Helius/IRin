@@ -406,10 +406,9 @@ void print_help ()
 
 // define for memory where store key records, records is null-terminated string less than 32 chars
 // key code from key name separated with one whitespace " "
-#define _KEY_MAP_SIZE    5																// max 60 key string may store
+#define _KEY_MAP_SIZE    60																// max 60 key string may store
 #define _KEY_REC_SIZE    32																// max len of one string (include '\0')
-#define _KEY_IND_ADR     (AT24_PAGE_LEN*AT24_PAGE_NMB-8)  // addr of last key record (need for simple round overwrite old key)
-#define _IR_REPDELAY_ADR _KEY_IND_ADR + 1									// addr for store repeat key press delay (2byte)
+#define _IR_REPDELAY_ADR (AT24_PAGE_LEN*AT24_PAGE_NMB-8)  // addr for store repeat key press delay (2byte)
 
 //*****************************************************************************
 // context help for memory command (just as example of shell feature)
@@ -453,8 +452,6 @@ void memory_format (int ind)
 				cdc_write ("write failed");
 			}
 		}
-		char key_ind=0;
-		at24_write (_KEY_IND_ADR, &key_ind, 1);
 	}
 }
 
