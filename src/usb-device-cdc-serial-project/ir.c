@@ -27,11 +27,6 @@ void ir_init (ir_t * this)
 // need to call 100us period for ir internal timing clock
 void ir_time_handler (ir_t * this)
 {
-//	if (PIO_Get (&dbg_pin))
-//		PIO_Clear (&dbg_pin);
-//	else
-//		PIO_Set (&dbg_pin);
-
 	this->repeat_time++;
 	if (this->state != _IR_IDLE)
 		this->timer++;
@@ -53,25 +48,18 @@ void ir_time_handler (ir_t * this)
 		this->led_cnt--;
 	else
 		PIO_Clear (&ledGrn);
-	
-//	if (PIO_Get (&dbg_pin))
-//		PIO_Clear (&dbg_pin);
-//	else
-//		PIO_Set (&dbg_pin);
 }
 
 //*****************************************************************************
 static int accept_code (ir_t * this)
 {
 	unsigned char cmd[2];
-//	TRACE_DEBUG ("raw([!cmd][cmd][adr_h][adr_l]): %x", this->raw);
 	cmd[0] = 0xFF & (this->raw >> 16);
 	cmd[1] = 0xFF & (this->raw >> 24);
 	//check command
 	if (cmd[0] == (cmd[1]^0xFF)) {
 		this->code = this->raw & (0xFFFFFF);
 		this->receive_flag = true;
-//		TRACE_DEBUG ("\t[cmd][adr_h][adr_l] %x", this->code);
 		PIO_Set (&ledGrn);
 		this->led_cnt = 1000;
 		return true;
@@ -100,10 +88,11 @@ void ir_line_handler (ir_t * this, int level)
 						(this->timer > _TIME_SYNCH_LO_PULSE - 6)) {
 		this->timer = 0;
 		this->state = _IR_RX_DATA;
-	}	else if ((this->state == _IR_SYNCHRO_DOWN) && (level) &&
-						(this->timer < _TIME_DATA_1_PULSE + _DATA_LAPS) && 
-						(this->timer > _TIME_DATA_1_PULSE - _DATA_LAPS)) {
-		this->state = _IR_REPEAT;
+// fuck! this is VERY buggy
+//	}	else if ((this->state == _IR_SYNCHRO_DOWN) && (level) &&
+//						(this->timer < _TIME_DATA_1_PULSE + _DATA_LAPS) && 
+//						(this->timer > _TIME_DATA_1_PULSE - _DATA_LAPS)) {
+//		this->state = _IR_REPEAT;
 	}	else if (this->state == _IR_RX_DATA) {
 		if (level) {
 			this->raw >>= 1;
