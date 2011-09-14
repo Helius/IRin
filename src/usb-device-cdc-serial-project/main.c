@@ -397,16 +397,16 @@ void print_help ()
 	cdc_write ("Use TAB key for completion\n\r");
 	cdc_write ("Command:\n\r");
 	cdc_write ("\thelp - this message\n\r");
-	cdc_write ("\teeprom { format | print [ start [ stop ] ] }\n\r");
+	cdc_write ("\teeprom { format [ind] | print [ start [ stop ] ] }\n\r");
 	cdc_write ("\t\tformat [ind] - erase 'ind' key record (if ind < _KEY_MAP_SIZE) or erase entire eeprom overwise\n\r");
-	cdc_write ("\t\tprint - output key strings saved to eeprom, start and stop - start key and stop key position (0..60)\n\r");
+	cdc_write ("\t\tprint - show key strings saved to eeprom, start and stop - start key and stop key position (0..60)\n\r");
 	cdc_write ("\trep_delay [delay_ms] - set repete key press delay in ms, or print saved delay if 'delay_ms' not present\n\r");
 	cdc_write ("\tsetname 'name' - set name for last pressed key\n\r");
 }
 
 // define for memory where store key records, records is null-terminated string less than 32 chars
 // key code from key name separated with one whitespace " "
-#define _KEY_MAP_SIZE    60																// max 60 key string may store
+#define _KEY_MAP_SIZE    5																// max 60 key string may store
 #define _KEY_REC_SIZE    32																// max len of one string (include '\0')
 #define _KEY_IND_ADR     (AT24_PAGE_LEN*AT24_PAGE_NMB-8)  // addr of last key record (need for simple round overwrite old key)
 #define _IR_REPDELAY_ADR _KEY_IND_ADR + 1									// addr for store repeat key press delay (2byte)
@@ -428,7 +428,7 @@ void memory_print (int start, int stop)
 		sprintf (nmb, "key %2d: ", i);
 		cdc_write (nmb);
 		if (at24_read (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE))
-			cdc_write ("eeprom read failed\n\r");
+			cdc_write ((char *)"eeprom read failed\n\r");
 		buf[_KEY_REC_SIZE]=0;
 		cdc_write (buf);
 		cdc_write ("\n\r");
@@ -478,24 +478,23 @@ int memory_find_name (char * key_str, char * name)
 
 //*****************************************************************************
 // add new key record for 'key_code' and 'name' at index (plased at _KEY_IND_ADR)
-// TODO: need to add feature - check that key was not be set, check that name is
-// not already use
 int memory_set_name (int key_code, char * name)
 {
 	char key_str [_KEY_REC_SIZE];
 	char buf [_KEY_REC_SIZE];
+	
+	cdc_write (name);	
+	cdc_write ("\n\r");
 
 	// check that key was pressed
 	if (key_code == 0) {
 		cdc_write ("Key not set! Please, press key on IR\n\r");
 		return 0;
 	}
-	
 	key2str (key_str, key_code);
 	// check that there is empty space for store record string
 	int empty_ind = 255;
-	int i;
-	for (i = 0; i < _KEY_MAP_SIZE; i++) {
+	for (int i = 0; i < _KEY_MAP_SIZE; i++) {
 		at24_read (i*_KEY_REC_SIZE, buf, _KEY_REC_SIZE);
 
 		// if we find empty rec and it first record (empty_ind was not set) set empty_ind
@@ -508,9 +507,10 @@ int memory_set_name (int key_code, char * name)
 			cdc_write (" - key already was set!\n\r");
 			return 0;
 		}
+		
 		// check name
 		char * sname = strstr (buf, name);
-		if (strcmp (sname, name) == 0) {
+		if (strcmp (name, sname) == 0) {
 			cdc_write (buf);
 			cdc_write (" - name already in use\n\r");
 			return 0;
@@ -523,8 +523,7 @@ int memory_set_name (int key_code, char * name)
 
 	cdc_write ("saving name: '");
 	cdc_write (name);
-	cdc_write ("' for '");
-	memset (key_str, 0, _KEY_REC_SIZE);
+	cdc_write ("' for key '");
 	cdc_write (key_str);
 	cdc_write ("'\n\r");
 	
@@ -559,11 +558,11 @@ char * keyworld [] = {_CMD_HELP, _CMD_SETNAME, _CMD_EEPROM, _CMD_REPDELAY};
 // array for store subcommand token
 char * mem_sub_cmd [] = {_SCMD_PRINT, _SCMD_FORMAT};
 // array for stored pointer to command or subcommand token for completion variants
-char ** compl_world [_NUM_OF_CMD + 1];
+char * compl_world [_NUM_OF_CMD + 1];
 
 //*****************************************************************************
 // execute callback for microrl library
-int execute (int argc, const char * const * argv)
+int execute (int argc, const char * const *  argv)
 {
 	int i = 0;
 	while (i < argc) {
@@ -603,7 +602,7 @@ int execute (int argc, const char * const * argv)
 				// if ind not in (0 .. _KEY_MAP_SIZE-1) format all, overwise only 'ind' record
 				int ind = _KEY_MAP_SIZE; 
 				if (++i < argc)
-					ind = atoi (argv[i])
+					ind = atoi (argv[i]);
 				memory_format (ind);
 				return 1;
 			} else {
@@ -612,7 +611,7 @@ int execute (int argc, const char * const * argv)
 			}
 		} else if (strcmp (argv[i], _CMD_SETNAME) == 0) {
 			if (++i < argc) {
-				memory_set_name (last_key_code, argv[i]);
+				memory_set_name (last_key_code, (char*)argv[i]);
 				last_key_code = 0;
 			} else {
 				cdc_write ("command setname needs argument - ascii name\n\r");
@@ -620,7 +619,7 @@ int execute (int argc, const char * const * argv)
 			}
 		} else {
 			cdc_write ("command: '");
-			cdc_write (argv[i]);
+			cdc_write ((char*)argv[i]);
 			cdc_write ("' Not found.\n\r");
 		}
 		i++;
@@ -668,7 +667,7 @@ char ** complet (int argc, const char * const * argv)
 	// note! last ptr in array always must be NULL!!!
 	compl_world [j] = NULL;
 	// return set of variants
-	return compl_world;
+	return (char**) compl_world;
 }
 //------------------------------------------------------------------------------
 //          Main
