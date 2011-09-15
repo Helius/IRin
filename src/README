@@ -11,7 +11,7 @@ usb-device-cdc-serial-project/  Atmel USB-CDC  based IRin source code
 
 Device get IR-receiver line change status in interrupt and handle it with routines in ir.c source, what returns IR-key codes.
 Key codes send via usb-dcd driver to virtual com port as ascii strings.
-If you open virtual com port with terminal (like minicom) you give simple command line interfase for configuring device (set name string for key code, change repeat-key delay, etc).
+If you open virtual com port with terminal (like minicom) you give simple command line interface for configuring device (set name string for key code, change repeat-key delay, etc).
 
 ************** Change log ***********
 Look at github.com for detail.
@@ -23,6 +23,6 @@ Release feature:
 * Support only NEC IR protocol
 * Support repeat key press command
 * Command line interface - CLI (type 'help' in terminal) based on 'microrl' library
-* CLI commands for bind ascii string for key aliase (for example VOLUM_UP instead of NEC_3D93F9A2) via command line
-* CLI command for set repeate key delay
+* CLI commands for bind ascii string for key alias (for example VOLUME_UP instead of NEC_3D93F9A2) via command line
+* CLI command for set repeat key delay
 
