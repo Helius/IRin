@@ -94,7 +94,7 @@ USB = $(AT91LIB)/usb
 UTILITY = $(AT91LIB)/utility
 PERIPH = $(AT91LIB)/peripherals
 BOARDS = $(AT91LIB)/boards
-MICRORL = ../microrl
+MICRORL = ../microrl/src/
 
 VPATH += $(USB)/device/cdc-serial $(USB)/device/core $(USB)/common/core
 VPATH += $(USB)/common/cdc

@@ -158,19 +158,12 @@
 #include <usb/device/cdc-serial/CDCDSerialDriverDescriptors.h>
 #include <pmc/pmc.h>
 #include "ir.h"
-#include "../microrl/microrl.h"
+#include "../microrl/src/microrl.h"
 #include "i2csw.h"
 #include "at24.h"
 
 #define true 1
 #define false 0
-
-//  ir object data and pointer on it
-ir_t ir;
-ir_t * pir = &ir;
-// microrl object and pointer on it
-microrl_t rl;
-microrl_t * prl = &rl;
 
 //------------------------------------------------------------------------------
 //      Definitions
@@ -193,16 +186,18 @@ microrl_t * prl = &rl;
 //------------------------------------------------------------------------------
 //      Internal variables
 //------------------------------------------------------------------------------
-/// State of USB, for suspend and resume
-unsigned char USBState = STATE_IDLE;
 
-/// Number of byte USB recieve
-static int usb_recieve;
+unsigned char USBState = STATE_IDLE;   // State of USB, for suspend and resume
+static int usb_recieve;                // Number of byte USB recieve
 static int key_code = 0;
 static int last_key_code = 0;
-
 static unsigned char usbBuffer[DATABUFFERSIZE];
-
+//  ir object data and pointer on it
+ir_t ir;
+ir_t * pir = &ir;
+// microrl object and pointer on it
+microrl_t rl;
+microrl_t * prl = &rl;
 
 /// Pin definititon
 static const Pin pinIR     = PIN_IR_REC;
@@ -663,6 +658,7 @@ char ** complet (int argc, const char * const * argv)
 	// return set of variants
 	return (char**) compl_world;
 }
+
 //------------------------------------------------------------------------------
 //          Main
 //------------------------------------------------------------------------------
@@ -749,7 +745,7 @@ int main()
 	ir_init (pir);
 
 	// read delay from eeprom
-	int delay = 9;
+	int delay = 9; // 9 is a magic, do not care about it, feel free to set you own value ))
 	char buf[2];
 	at24_read (_IR_REPDELAY_ADR, buf, 2); //2 byte for delay (in ms)
 	delay = buf [0];
@@ -760,32 +756,30 @@ int main()
 
 	// main loop
 	while (1) {
-
 		// Device is not configured
 		if (USBD_GetState() < USBD_STATE_CONFIGURED) {
-
-				// Connect pull-up, wait for configuration
-				USBD_Connect();
-				while (USBD_GetState() < USBD_STATE_CONFIGURED);
-
-				// Start receiving data on the USB
-				CDCDSerialDriver_Read(usbBuffer,
-															DATABUFFERSIZE,
-															(TransferCallback) UsbDataReceived,
-															0);
+			// Connect pull-up, wait for configuration
+			USBD_Connect();
+			while (USBD_GetState() < USBD_STATE_CONFIGURED);
+			// Start receiving data on the USB
+			CDCDSerialDriver_Read(usbBuffer,
+														DATABUFFERSIZE,
+														(TransferCallback) UsbDataReceived,
+														0);
 		} else {
 			PIO_Clear (&ledRed);
 		}
 
 		if( USBState == STATE_SUSPEND ) {
-				TRACE_DEBUG("suspend  !\n\r");
-				USBState = STATE_IDLE;
+			TRACE_DEBUG("suspend  !\n\r");
+			USBState = STATE_IDLE;
 		}
 		if( USBState == STATE_RESUME ) {
-				// Return in normal MODE
-				TRACE_DEBUG("resume !\n\r");
-				USBState = STATE_IDLE;
+			// Return in normal MODE
+			TRACE_DEBUG("resume !\n\r");
+			USBState = STATE_IDLE;
 		}
+
 		// check new IR code
 		key_code = ir_code (pir);
 		if (key_code) {
