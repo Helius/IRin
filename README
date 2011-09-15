@@ -1,6 +1,7 @@
 IRin - USB device, what recieve IR remote signals and send it via USB. 
 
 Just write simple script with `cat /dev/ttyACM0` and read line by line IR code from dongle.
+Now it's support command line interface for configuring (via /dev/ttyACM0, just open it in mimicom)
 
 Device implements USB-CDC (communication device class) and no needs driver on Linux (Windows needs standart CDC driver, not included in all distrib)
 

@@ -1,0 +1,28 @@
+Source code of IRin project (http://helius.github.com/IRin/) by Helius aka Eugene Samoylov (ghelius@gmail.com)
+
+Folder contain:
+
+at91lib/                        Atmel at91xx MC lib
+microrl/                        library for command line interface (https://github.com/Helius/microrl)
+resources/                      Atmel gdb stuff
+usb-device-cdc-serial-project/  Atmel USB-CDC  based IRin source code
+
+************ HOW IT WORKS ***********
+
+Device get IR-receiver line change status in interrupt and handle it with routines in ir.c source, what returns IR-key codes.
+Key codes send via usb-dcd driver to virtual com port as ascii strings.
+If you open virtual com port with terminal (like minicom) you give simple command line interfase for configuring device (set name string for key code, change repeat-key delay, etc).
+
+************** Change log ***********
+Look at github.com for detail.
+
+v1.0 -- 15.09.2011 14:30
+
+Code size about 30Kb
+Release feature:
+* Support only NEC IR protocol
+* Support repeat key press command
+* Command line interface - CLI (type 'help' in terminal) based on 'microrl' library
+* CLI commands for bind ascii string for key aliase (for example VOLUM_UP instead of NEC_3D93F9A2) via command line
+* CLI command for set repeate key delay
+
