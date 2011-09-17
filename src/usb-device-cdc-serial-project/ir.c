@@ -77,9 +77,10 @@ void ir_line_handler (ir_t * this, int level)
 		this->count = 0;
 		this->state = _IR_SYNCHRO_UP;
 //		PIO_Set (&dbg_pin);
+// some times my fucking IR pult generate 90-45 synchro sequence, some times 90-90, wtf?!
 	}	else if ((this->state == _IR_SYNCHRO_UP) && (!level) &&
-						(this->timer < _TIME_SYNCH_LO_PULSE + 6) && 
-						(this->timer > _TIME_SYNCH_LO_PULSE - 6)) {
+						(this->timer < _TIME_SYNCH_HI_PULSE + 6) && 
+						(this->timer > _TIME_SYNCH_HI_PULSE - 6)) {
 		this->timer = 0;
 		this->state = _IR_SYNCHRO_DOWN;
 //		PIO_Clear (&dbg_pin);
