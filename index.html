@@ -136,9 +136,53 @@ This asci string is remote key-code (this remote has NEC protocol).
 <span class="lnr">30 </span>  <span class="Conditional">esac</span>
 <span class="lnr">31 </span><span class="Conditional">done</span>
 </pre>
-If you open device in terminal like minicom, you give simple shell for configuring device
-<pre>$ minicom -D /dev/ttyACM0
+If you open device in terminal like minicom, you give simple shell for configuring device. Press TAB or type 'help' command.
+<pre>$ minicom -D /dev/ttyACM0 -c on -b 115200
 IRin&gt;</pre>
+Now you can use comands for set delay
+After configure you can print eeprom content, my listing contain 36 key:
+<pre>IRin&gt; eeprom print 
+key  0: NEC_582D2D ENTER
+key  1: NEC_312D2D PLAY 
+key  2: NEC_472D2D VOLUME_UP
+key  3: NEC_482D2D VOLUME_DOWN
+key  4: NEC_5A2D2D RIGHT      
+key  5: NEC_592D2D LEFT 
+key  6: NEC_342D2D FORWARD
+key  7: NEC_352D2D BACKWARD
+key  8: NEC_4F2D2D AUDIO   
+key  9: NEC_3B2D2D 1    
+key 10: NEC_3C2D2D 2
+key 11: NEC_3D2D2D 3
+key 12: NEC_3E2D2D 4
+key 13: NEC_3F2D2D 5
+key 14: NEC_402D2D 6
+key 15: NEC_412D2D 7
+key 16: NEC_422D2D 8
+key 17: NEC_432D2D 9
+key 18: NEC_442D2D 0
+key 19: NEC_302D2D POWER
+key 20: NEC_362D2D OPEN 
+key 21: NEC_572D2D PROGRAM
+key 22: NEC_462D2D CLEAR  
+key 23: NEC_452D2D RETURN
+key 24: NEC_622D2D SEARCH
+key 25: NEC_512D2D RANDOM
+key 26: NEC_382D2D PAUSE 
+key 27: NEC_392D2D STOP 
+key 28: NEC_4A2D2D TITLE
+key 29: NEC_562D2D SETUP
+key 30: NEC_3A2D2D DISPLAY
+key 31: NEC_642D2D ZOOM   
+key 32: NEC_502D2D SUBTITLE
+key 33: NEC_612D2D MARKER  
+key 34: NEC_532D2D REPEAT
+key 35: NEC_552D2D A-B   
+key 36: NEC_4C2D2D ANGLE
+key 39: 
+...
+IRin&gt;</pre>
+
 
 <h2>Board</h2>
 Board produced in Eagle for home made laser-printer technology.<br>
