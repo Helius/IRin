@@ -97,7 +97,7 @@
 <h2>Цель</h2>
     <div class="goal">
 			Основной идеей было создать простое в использовании устройство, которое бы принимало сигналы с ИК пульта и отправляло их в ОС, при этом не использовало com-порт, который все реже встречается в современных ПК, не требовало сложной конфигурации и настройки на пульт (намучался с lirc). Решено использовать Communication Device Class USB, по сути виртуальный com-порт, не требующий специальных драйверов в большинстве ОС, а так же позволяющий работать с ним без специальных программных средств. Просто подключаем устройство, открываем VCP на чтение, жмем кнопки пульта и видим как сыплются коды кнопок. В Linux это сделать проще простого используя утилиту cat: 
-			<pre>$ cat /dev/ttyACM0
+			<pre>$ cat /dev/ttyUSB0
 NEC 5916E
 NEC 6916E	</pre>
 Строки которые вы видите в терминале - коды кнопок предваренные протоколом пульта (мой пульт работает по NEC протоколу)
@@ -106,15 +106,15 @@ NEC 6916E	</pre>
 Если устройство не подхватится автоматически, загрузите драйвер руками, уазав код устройства (можно посмотреть в выводе lsusb)
 <br>
 <pre># modprobe usbserial vendor=0x03eb  product=0x6119</pre>
-Имя устройства может отличаться (/dev/ttyACM0, /dev/USB0 итд, смотрите syslog).<br>
-Пример простого bash скрипта позволяющиего автоматически обрабатывать события нажатия кнопок пульта. В 6 строке мы читаем коды кнопок пульта с /dev/ttyACM0 - наше устройство. В 7 строке мы свитчимся в зависимости от кода кнопки в обработчик и выполняем необходимы действия (рулим громкостью).
+Имя устройства может отличаться (/dev/ttyUSB0, /dev/USB0 итд, смотрите syslog).<br>
+Пример простого bash скрипта позволяющиего автоматически обрабатывать события нажатия кнопок пульта. В 6 строке мы читаем коды кнопок пульта с /dev/ttyUSB0 - наше устройство. В 7 строке мы свитчимся в зависимости от кода кнопки в обработчик и выполняем необходимы действия (рулим громкостью).
 <pre>
 <span class="lnr"> 1 </span><span class="Comment">#!/bin/bash</span>
 <span class="lnr"> 2 </span>
 <span class="lnr"> 3 </span><span class="Identifier">KEY_VOL_UP</span>=<span class="Statement">&quot;</span><span class="String">NEC 00000</span><span class="Statement">&quot;</span>
 <span class="lnr"> 4 </span><span class="Identifier">KEY_VOL_DOWN</span>=<span class="Statement">&quot;</span><span class="String">NEC 11111</span><span class="Statement">&quot;</span>
 <span class="lnr"> 5 </span>
-<span class="lnr"> 6 </span>cat /dev/ttyACM0 | <span class="Statement">while </span><span class="Statement">read</span><span class="Statement"> line</span><span class="Statement">;</span><span class="Statement"> </span><span class="Conditional">do</span>
+<span class="lnr"> 6 </span>cat /dev/ttyUSB0 | <span class="Statement">while </span><span class="Statement">read</span><span class="Statement"> line</span><span class="Statement">;</span><span class="Statement"> </span><span class="Conditional">do</span>
 <span class="lnr"> 7 </span>  <span class="Conditional">case</span> <span class="Statement">&quot;</span><span class="PreProc">$line</span><span class="Statement">&quot;</span> <span class="Conditional">in</span>
 <span class="lnr"> 8 </span>
 <span class="lnr"> 9 </span><span class="Comment">#--- volume up action ----</span>
@@ -141,8 +141,30 @@ NEC 6916E	</pre>
 <span class="lnr">30 </span>  <span class="Conditional">esac</span>
 <span class="lnr">31 </span><span class="Conditional">done</span>
 </pre>
-Если вы откроете файл устройства (виртуальный com-порт) терминалом типа minicom под linux или гипертерминалом под вендой, нажмите "Enter" на клавиатуре и вы увидите приглашение командной строки. Это командная оболочка реализованная в устройстве, позволяет конфигурировать и задавать псевдонимы для кодов кнопок.
-<pre>$ minicom -D /dev/ttyACM0
+Если вы откроете файл устройства (виртуальный com-порт) терминалом типа minicom под linux или putty под вендой, нажмите "Enter" на клавиатуре и вы увидите приглашение командной строки. Это командная оболочка реализованная в устройстве, позволяет конфигурировать и задавать псевдонимы для кодов кнопок.
+<pre>$ minicom -D /dev/ttyUSB0 -c on -b 115200
+IRin&gt;</pre>
+Нажмите кнопку на пульте ее код появится в консоли, теперь выполните 'setname' с ASCI псевдонимом:
+<pre>NEC_DD916E       
+IRin&gt; setname VOLUME_UP
+saving name: 'VOLUME_UP' for key 'NEC_DD916E'
+IRin&gt;</pre>
+Теперь если вы нажмете ту же кнопку, вы увидете VOLUME_UP вместо NEC_DD916E. 
+Кроме того вы можете задать время повтора зажатой кнопки (в мс)
+<pre>IRin&gt; 
+IRin&gt; rep_delay 
+500 ms           
+IRin&gt; rep_delay 350
+IRin&gt; rep_delay 
+350 ms           
+IRin&gt; </pre>
+
+
+После конфигурирования можно посмотреть сохраненные в памяти записи для кнопок:
+<pre>IRin&gt; eeprom print 
+key  0: NEC_14916E POWER
+key  1: NEC_DD916E VOLUME_UP
+...
 IRin&gt;</pre>
 
 <h2>Плата</h2>

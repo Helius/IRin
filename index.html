@@ -97,19 +97,19 @@
 <h2>Main goal</h2>
     <div class="goal">
 			I wanna to build simple device, which receive IR remote signals and send it to OS. No special software, no obsolete com-port, no difficult configuring and bind remote key. I decide to use USB communication device class (usb-cdc), because it no needs special driver.  Just plug usb dongle, read VCP, now press some key on IR, in linux for example:
-			<pre>$ cat /dev/ttyACM0
+			<pre>$ cat /dev/ttyUSB0
 NEC 5916E
 NEC 6916E	</pre>
 This asci string is remote key-code (this remote has NEC protocol).
     </div>
-<br>Simple bash script example. At line 6 we read string (key code) from /dev/ttyACM0 - our device, at line 7 switching through defined keys and do action. 
+<br>Simple bash script example. At line 6 we read string (key code) from /dev/ttyUSB0 - our device, at line 7 switching through defined keys and do action. 
 <pre>
 <span class="lnr"> 1 </span><span class="Comment">#!/bin/bash</span>
 <span class="lnr"> 2 </span>
 <span class="lnr"> 3 </span><span class="Identifier">KEY_VOL_UP</span>=<span class="Statement">&quot;</span><span class="String">NEC 00000</span><span class="Statement">&quot;</span>
 <span class="lnr"> 4 </span><span class="Identifier">KEY_VOL_DOWN</span>=<span class="Statement">&quot;</span><span class="String">NEC 11111</span><span class="Statement">&quot;</span>
 <span class="lnr"> 5 </span>
-<span class="lnr"> 6 </span>cat /dev/ttyACM0 | <span class="Statement">while </span><span class="Statement">read</span><span class="Statement"> line</span><span class="Statement">;</span><span class="Statement"> </span><span class="Conditional">do</span>
+<span class="lnr"> 6 </span>cat /dev/ttyUSB0 | <span class="Statement">while </span><span class="Statement">read</span><span class="Statement"> line</span><span class="Statement">;</span><span class="Statement"> </span><span class="Conditional">do</span>
 <span class="lnr"> 7 </span>  <span class="Conditional">case</span> <span class="Statement">&quot;</span><span class="PreProc">$line</span><span class="Statement">&quot;</span> <span class="Conditional">in</span>
 <span class="lnr"> 8 </span>
 <span class="lnr"> 9 </span><span class="Comment">#--- volume up action ----</span>
@@ -137,49 +137,27 @@ This asci string is remote key-code (this remote has NEC protocol).
 <span class="lnr">31 </span><span class="Conditional">done</span>
 </pre>
 If you open device in terminal like minicom, you give simple shell for configuring device. Press TAB or type 'help' command.
-<pre>$ minicom -D /dev/ttyACM0 -c on -b 115200
+<pre>$ minicom -D /dev/ttyUSB0 -c on -b 115200
 IRin&gt;</pre>
-Now you can use comands for set delay
-After configure you can print eeprom content, my listing contain 36 key:
+Now press remote button and you see it code in terminal, now execute command 'setname' with ASCI name for this key, for example:
+<pre>NEC_DD916E       
+IRin&gt; setname VOLUME_UP
+saving name: 'VOLUME_UP' for key 'NEC_DD916E'
+IRin&gt;</pre>
+If you press this button yo see VOLUME_UP instead NEC_DD916E. Also you can set repeat key press delay (in ms)
+<pre>IRin&gt; 
+IRin&gt; rep_delay 
+500 ms           
+IRin&gt; rep_delay 350
+IRin&gt; rep_delay 
+350 ms           
+IRin&gt; </pre>
+
+
+After configure you can print eeprom content, for example:
 <pre>IRin&gt; eeprom print 
-key  0: NEC_582D2D ENTER
-key  1: NEC_312D2D PLAY 
-key  2: NEC_472D2D VOLUME_UP
-key  3: NEC_482D2D VOLUME_DOWN
-key  4: NEC_5A2D2D RIGHT      
-key  5: NEC_592D2D LEFT 
-key  6: NEC_342D2D FORWARD
-key  7: NEC_352D2D BACKWARD
-key  8: NEC_4F2D2D AUDIO   
-key  9: NEC_3B2D2D 1    
-key 10: NEC_3C2D2D 2
-key 11: NEC_3D2D2D 3
-key 12: NEC_3E2D2D 4
-key 13: NEC_3F2D2D 5
-key 14: NEC_402D2D 6
-key 15: NEC_412D2D 7
-key 16: NEC_422D2D 8
-key 17: NEC_432D2D 9
-key 18: NEC_442D2D 0
-key 19: NEC_302D2D POWER
-key 20: NEC_362D2D OPEN 
-key 21: NEC_572D2D PROGRAM
-key 22: NEC_462D2D CLEAR  
-key 23: NEC_452D2D RETURN
-key 24: NEC_622D2D SEARCH
-key 25: NEC_512D2D RANDOM
-key 26: NEC_382D2D PAUSE 
-key 27: NEC_392D2D STOP 
-key 28: NEC_4A2D2D TITLE
-key 29: NEC_562D2D SETUP
-key 30: NEC_3A2D2D DISPLAY
-key 31: NEC_642D2D ZOOM   
-key 32: NEC_502D2D SUBTITLE
-key 33: NEC_612D2D MARKER  
-key 34: NEC_532D2D REPEAT
-key 35: NEC_552D2D A-B   
-key 36: NEC_4C2D2D ANGLE
-key 39: 
+key  0: NEC_14916E POWER
+key  1: NEC_DD916E VOLUME_UP
 ...
 IRin&gt;</pre>
 
