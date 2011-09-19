@@ -1,7 +1,7 @@
 IRin - USB device, what receive IR remote signals and send it via USB.
 http://helius.github.com/IRin/
 
-IRin used 'microrl' library (git://github.com/Helius/microrl.git) for command line interface, if you clone 'IRin' git repo, don't remember execute:
+IRin used 'microrl' library (git://github.com/Helius/microrl.git) for command line interface, if you clone 'IRin' git repo, don't forget execute:
 $git submodule init
 $git submodule update
 
