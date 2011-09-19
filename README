@@ -1,12 +1,26 @@
-IRin - USB device, what recieve IR remote signals and send it via USB. 
+IRin - USB device, what receive IR remote signals and send it via USB.
+http://helius.github.com/IRin/
 
-Just write simple script with `cat /dev/ttyACM0` and read line by line IR code from dongle.
-Now it's support command line interface for configuring (via /dev/ttyACM0, just open it in mimicom)
+IRin used 'microrl' library (git://github.com/Helius/microrl.git) for command line interface, if you clone 'IRin' git repo, don't remember execute:
+$git submodule init
+$git submodule update
 
-Device implements USB-CDC (communication device class) and no needs driver on Linux (Windows needs standart CDC driver, not included in all distrib)
+Device recognize by Linux as /dev/ttyUSB0 (or /dev/ttyACM0) see '/var/log/syslog'.
+
+Just write simple script with `cat /dev/ttyUSB0` and read line by line IR code from dongle.
+Now it's support command line interface for configuring (via /dev/ttyUSB0, just open it in mimicom). Your may set ascii name for key (VOLUME_UP for NEC_D419ACE0) via simple CLI shell.
+
+$minicom -c on -D /dev/ttyUSB0 -b 115200
+
+Device implements USB-CDC (communication device class) and no needs driver on Linux (Windows needs standard CDC driver, not included in all distrib)
+
 
 Project contains:
 * schematic (EAGLE)
 * pcb (EAGLE) - trace at one layer, for home-made (laser printer + laminator)
 * source code - base on Atmel USB frame-work
-* some scripts for load firmvare to device and use it.
+* some scripts for load firmware to device and use it.
+
+
+------
+Author: Helius aka Eugene Samoylov (ghelius@gmail.com)
